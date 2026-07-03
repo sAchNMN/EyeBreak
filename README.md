@@ -36,7 +36,7 @@ Implemented:
 
 Pending manual acceptance:
 
-* Autostart toggle behavior.
+* None at this point.
 
 Not implemented yet:
 
@@ -56,6 +56,10 @@ Manual acceptance status:
 * Program icon implementation accepted by the user, including tray, window,
   and Windows taskbar icon behavior.
 * Current draggable floating countdown and position-persistence update accepted by the user.
+* Idle detection behavior accepted by the user.
+* Autostart toggle behavior accepted by the user.
+* PyInstaller build output accepted by the user.
+* Tray check-mark immediate-refresh behavior accepted by the user.
 
 ## Install
 

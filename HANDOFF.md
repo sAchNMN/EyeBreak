@@ -45,9 +45,7 @@ The project deliberately avoids non-MVP scope for now:
   * idle detection behavior.
 * Pending manual acceptance:
 
-  * autostart toggle behavior;
-  * PyInstaller build output verification, if packaging work is continued;
-  * tray check-mark immediate-update behavior, unless the user has accepted it in a later message not reflected here.
+  * none at this point.
 * Push rule:
 
   * do not push before explicit user acceptance, such as "验收没有问题".
@@ -163,14 +161,15 @@ Accepted by the user:
 
 Not accepted yet:
 
-* Autostart toggle behavior, unless accepted in a later user message not reflected here.
-* PyInstaller build output verification, if packaging work is continued.
-* Tray check-mark immediate-update behavior, unless accepted in a later user message not reflected here.
+* None at this point.
 
 Accepted later:
 
 * Draggable floating countdown update and position persistence.
 * Idle detection feature — user confirmed acceptance with 验收没有问题.
+* Autostart toggle behavior — user confirmed it has been accepted.
+* PyInstaller build output — user confirmed it has been accepted.
+* Tray check-mark immediate-refresh behavior — user confirmed it has been accepted.
 
 ## File Map
 
@@ -277,9 +276,7 @@ Before calling the draggable floating countdown done, verify:
 
 Pending manual validation:
 
-* Autostart toggle behavior.
-* PyInstaller build output verification, if packaging work is continued.
-* Tray check-mark immediate-update behavior, unless accepted in a later user message not reflected here.
+* None at this point.
 
 Possible next refinement after acceptance:
 
@@ -407,7 +404,7 @@ Tests have not been run after this write yet.
 
 Formatting correction completed:
 
-* Fixed literal PowerShell `` `r`n`` text accidentally written into `README.md` and `tests/test_floating_countdown.py`.
+* Fixed literal PowerShell newline-escape text accidentally written into `README.md` and `tests/test_floating_countdown.py`.
 * No behavior change beyond restoring valid markdown and Python syntax.
 
 Tests have not been run after this correction yet.
@@ -449,7 +446,7 @@ Test commands and results:
 
 Manual acceptance status:
 
-* Position persistence has not yet been accepted by the user.
+* Position persistence has been accepted by the user as part of the floating countdown milestone.
 
 Encoding correction completed:
 
@@ -503,7 +500,7 @@ Test commands and results:
 
 Manual acceptance status:
 
-* Autostart toggle behavior has not been manually accepted yet.
+* Autostart toggle behavior has been accepted by the user.
 
 ## Current PyInstaller Packaging
 
@@ -515,13 +512,13 @@ Changed files:
 
 Current behavior:
 
-* uild.spec defines a PyInstaller build targeting a single Windows executable with:
+* `build.spec` defines a PyInstaller build targeting a single Windows executable with:
   * No console window (console=False);
-  * EyeBreak icon from ssets/eyebreak.ico embedded in the exe;
+  * EyeBreak icon from `assets/eyebreak.ico` embedded in the exe;
   * pystray, PIL, winreg as hidden imports;
-  * ssets/eyebreak.ico copied alongside the exe for runtime icon generation.
+  * `assets/eyebreak.ico` copied alongside the exe for runtime icon generation.
 * Run pyinstaller build.spec to produce dist/EyeBreak/EyeBreak.exe.
-* Build artifacts (dist/, uild/) are git-ignored; uild.spec is tracked.
+* Build artifacts (`dist/`, `build/`) are git-ignored; `build.spec` is tracked.
 
 Dependency decision:
 
@@ -530,7 +527,7 @@ Dependency decision:
 
 Manual acceptance status:
 
-* PyInstaller build has not been verified or accepted yet.
+* PyInstaller build output has been accepted by the user.
 
 ## Current Tray Menu Check Mark Fix
 
@@ -558,7 +555,7 @@ Test commands and results:
 
 Manual acceptance status:
 
-* Tray menu check mark behavior has not been manually accepted yet.
+* Tray menu check mark behavior has been accepted by the user.
 
 ## Current Tray Menu Immediate Check Mark Fix
 
@@ -583,7 +580,7 @@ Test commands and results:
 
 Manual acceptance status:
 
-* Immediate check mark update behavior has not been manually accepted yet.
+* Immediate check mark update behavior has been accepted by the user.
 
 
 ## Current Idle Detection Feature
@@ -624,3 +621,36 @@ Test commands and results:
 Manual acceptance status:
 
 * Idle detection behavior has been accepted by the user.
+
+## Current Acceptance Status Update
+
+User confirmed these previously pending items have been accepted:
+
+* autostart toggle behavior;
+* PyInstaller build output;
+* tray check-mark immediate-refresh behavior.
+
+Changed files:
+
+* `README.md`
+* `HANDOFF.md`
+
+Current behavior:
+
+* No code behavior changed in this update.
+* Project documentation now marks the three items above as accepted.
+* `HANDOFF.md` also fixes corrupted PyInstaller path text from earlier notes.
+
+Dependency decision:
+
+* No dependency changes.
+
+Test impact:
+
+* Tests were not rerun for this documentation-only acceptance update.
+* Last confirmed test baseline remains `44 passed` with
+  `python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest` after escalated rerun.
+
+Manual acceptance status:
+
+* No pending manual acceptance items are recorded at this point.
