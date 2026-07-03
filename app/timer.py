@@ -57,9 +57,11 @@ class ReminderTimer:
             on_toggle_floating=lambda: self._run_on_ui_thread(
                 self._toggle_floating_countdown
             ),
+            get_is_floating_enabled=lambda: self.state.floating_countdown_enabled,
             on_toggle_autostart=lambda: self._run_on_ui_thread(
                 self._toggle_autostart
             ),
+            get_is_autostart_enabled=is_autostart_enabled,
             on_exit=lambda: self._run_on_ui_thread(self._exit),
         )
         self.tray_icon.start()
