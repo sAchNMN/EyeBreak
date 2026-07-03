@@ -12,3 +12,8 @@ app_state.json
 # Local AI tool artifacts
 .reasonix/
 CLAUDE.md
+
+# PyInstaller build artifacts
+*.spec
+dist/
+build/
