@@ -38,7 +38,6 @@ Pending manual acceptance:
 
 Not implemented yet:
 
-* Packaging.
 * Accounts.
 * Cloud sync.
 * Daily reports.
@@ -103,6 +102,21 @@ python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest
 ```
 
 Last known automated result: `40 passed` with the command above.
+
+## Build
+
+Build a standalone Windows executable with PyInstaller:
+
+```powershell
+pip install pyinstaller
+python -m PyInstaller build.spec
+```
+
+The output is `dist/EyeBreak.exe`. Copy the entire `dist/` folder to another
+machine; no Python installation is needed.
+
+> **Note:** `config.json` and `app_state.json` are read from the same directory
+> as `EyeBreak.exe`. Place them alongside the executable.
 
 Environment note:
 

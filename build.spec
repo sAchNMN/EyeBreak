@@ -1,14 +1,13 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent
+PROJECT_ROOT = Path.cwd().resolve()
 
 block_cipher = None
 
 a = Analysis(
-    ["main.py"],
+    [str(PROJECT_ROOT / "main.py")],
     pathex=[str(PROJECT_ROOT)],
     binaries=[],
     datas=[

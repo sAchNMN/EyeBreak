@@ -492,3 +492,30 @@ Test commands and results:
 Manual acceptance status:
 
 * Autostart toggle behavior has not been manually accepted yet.
+
+## Current PyInstaller Packaging
+
+Changed files:
+
+* uild.spec (new)
+* .gitignore
+* HANDOFF.md
+
+Current behavior:
+
+* uild.spec defines a PyInstaller build targeting a single Windows executable with:
+  * No console window (console=False);
+  * EyeBreak icon from ssets/eyebreak.ico embedded in the exe;
+  * pystray, PIL, winreg as hidden imports;
+  * ssets/eyebreak.ico copied alongside the exe for runtime icon generation.
+* Run pyinstaller build.spec to produce dist/EyeBreak/EyeBreak.exe.
+* Build artifacts (dist/, uild/) are git-ignored; uild.spec is tracked.
+
+Dependency decision:
+
+* pyinstaller added as a build-time dependency (not runtime).
+* No new runtime package was added.
+
+Manual acceptance status:
+
+* PyInstaller build has not been verified or accepted yet.
