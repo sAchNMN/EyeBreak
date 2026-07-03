@@ -19,7 +19,7 @@ Manual acceptance status:
 
 - Initial reminder flow accepted by the user.
 - Countdown status window accepted by the user.
-- System tray behavior still needs manual acceptance.
+- System tray behavior accepted by the user.
 
 ## Install
 
@@ -85,4 +85,3 @@ At each key development milestone:
 5. Do not push until the user explicitly says acceptance has no issues.
 6. After the user says acceptance has no issues, push the accepted milestone to
    GitHub.
-   milestone to GitHub.

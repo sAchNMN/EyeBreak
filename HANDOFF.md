@@ -46,7 +46,7 @@ User-reported acceptance:
   the original reminder flow.
 - The user reported that the simple countdown status window acceptance had no
   issues.
-- The system tray behavior still needs manual UI acceptance.
+- The system tray behavior was accepted by the user.
 
 ## File Map
 
@@ -185,7 +185,7 @@ Before calling a UI change done, verify:
 
 Recommended next step:
 
-- Manually validate tray behavior on Windows.
+- Tray behavior has been manually accepted; next work should start from a new unaccepted milestone.
 - Planned user-requested feature: replace the simple countdown status window with
   an edge-docked auto-hide floating countdown display. It should stay mostly
   hidden at the screen edge and reveal itself when the mouse pointer touches or
