@@ -41,11 +41,21 @@ def _pause_menu(on_pause: Callable[[int], None]) -> pystray.Menu:
         *(
             pystray.MenuItem(
                 _format_pause_label(minutes),
-                lambda icon, item, selected_minutes=minutes: on_pause(selected_minutes),
+                _pause_action(on_pause, minutes),
             )
             for minutes in PAUSE_OPTIONS_MINUTES
         )
     )
+
+
+def _pause_action(
+    on_pause: Callable[[int], None],
+    minutes: int,
+) -> Callable[[pystray.Icon, pystray.MenuItem], None]:
+    def action(icon: pystray.Icon, item: pystray.MenuItem) -> None:
+        on_pause(minutes)
+
+    return action
 
 
 def _format_pause_label(minutes: int) -> str:

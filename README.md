@@ -61,7 +61,7 @@ Restore normal values after testing:
 python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest
 ```
 
-Last known automated result: `8 passed`.
+Last known automated result: `9 passed`.
 
 ## Acceptance Checklist
 

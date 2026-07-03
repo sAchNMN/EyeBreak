@@ -39,6 +39,9 @@ Implemented:
   fallback.
 - Timer display tests for `MM:SS` formatting.
 - Tray icon image generation test.
+- Tray pause menu action callback arity fix: `pystray.MenuItem` accepts at
+  most two action parameters, so submenu callbacks use a two-argument closure
+  factory instead of a lambda with a default parameter.
 
 User-reported acceptance:
 
@@ -67,7 +70,8 @@ ext_reminder_at`.
   and pause-duration submenu options.
 - `tests/test_config.py`: config loader tests.
 - `tests/test_timer.py`: timer display formatting tests.
-- `tests/test_tray.py`: tray icon image generation test.
+- `tests/test_tray.py`: tray icon image generation, pause label, pause option,
+  and pause submenu callback tests.
 - `requirements.txt`: runtime dependencies for tray support.
 - `README.md`: user-facing project overview, install/run/test instructions,
   current acceptance status, and release discipline.
@@ -156,7 +160,7 @@ python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest
 
 Last known automated result:
 
-- `8 passed` after adding tray pause-duration submenu tests.
+- `9 passed` after fixing tray pause submenu callback arity and adding callback coverage.
 
 Known environment note:
 
