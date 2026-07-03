@@ -18,7 +18,7 @@ Implemented:
 * Hidden floating countdown skips visible number redraws and refreshes immediately when revealed.
 * Floating countdown marks pause state with "暂停中" and idle state with "已离开".
 * Idle detection (5 minutes by default) — when the user is away, reminders pause automatically and resume when they return.
-* System tray menu powered by `pystray`, including a floating-window toggle.
+* System tray menu powered by `pystray`, including a floating-window toggle and settings window.
 * Autostart toggle in the tray menu, persistent through Windows registry (HKCU\...\Run).
 * Topmost reminder popup with break countdown.
 * Skip, pause, resume, immediate break, and exit flows.
@@ -33,10 +33,11 @@ Implemented:
   * 120 minutes.
 
 * JSON configuration for reminder interval, break duration, pause duration, and idle threshold.
+* Tray settings window for editing reminder interval, break duration, default pause duration, and idle threshold without manually editing `config.json`.
 
 Pending manual acceptance:
 
-* None at this point.
+* Tray settings window behavior.
 
 Not implemented yet:
 
@@ -107,7 +108,7 @@ Run automated tests:
 python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest
 ```
 
-Last known automated result: `44 passed` with the command above.
+Last known automated result: `54 passed` with the command above after escalated rerun.
 
 ## Build
 
@@ -197,6 +198,17 @@ Before a UI milestone is considered accepted, manually verify the relevant flow.
 * Tray menu item "开机自启" toggles the EyeBreak entry in Windows registry
   (HKCU\...\Run). When checked, the app starts automatically on user login.
   Tray menu item "退出" terminates the app and removes the tray icon.
+
+
+### Settings Window
+
+* Tray menu item "设置" opens one settings window; selecting it again focuses the existing window.
+* The window shows current reminder interval, break duration, default pause duration, and idle detection threshold.
+* Saving valid values writes `config.json`.
+* Invalid values show an error and do not overwrite `config.json`.
+* Saved reminder interval takes effect immediately for the next reminder countdown.
+* If reminders are currently paused, saving settings keeps the current pause deadline and updates the reminder scheduled after the pause ends.
+* Setting idle detection to `0` disables idle detection.
 
 ### Icon Check
 

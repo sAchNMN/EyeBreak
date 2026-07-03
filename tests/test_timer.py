@@ -32,6 +32,18 @@ class FakeLabel:
         self.configure_calls.append(kwargs)
 
 
+class FakeSettingsWindow:
+    def __init__(self) -> None:
+        self.focus_calls = 0
+        self.root = self
+
+    def winfo_exists(self) -> bool:
+        return True
+
+    def focus(self) -> None:
+        self.focus_calls += 1
+
+
 def test_format_seconds_rounds_up_remaining_time() -> None:
     assert format_seconds(59.1) == "01:00"
     assert format_seconds(60) == "01:00"
@@ -103,3 +115,44 @@ def test_idle_display_shows_dashes_and_gray_status() -> None:
 
     assert fake_window.idle_values == [True]
     assert fake_label.configure_calls == [{"text": "--:--", "fg": "#9ca3af"}]
+
+
+def test_save_settings_updates_config_and_next_reminder(monkeypatch) -> None:
+    saved_configs: list[AppConfig] = []
+    state = AppState(next_reminder_at=0)
+    timer = ReminderTimer(AppConfig(reminder_interval_minutes=25), state)
+
+    monkeypatch.setattr(timer_module, "save_config", saved_configs.append)
+    monkeypatch.setattr(timer_module.time, "monotonic", lambda: 100.0)
+
+    timer._save_settings(AppConfig(reminder_interval_minutes=10))
+
+    assert timer.config.reminder_interval_minutes == 10
+    assert saved_configs == [AppConfig(reminder_interval_minutes=10)]
+    assert state.next_reminder_at == 700.0
+
+
+def test_save_settings_keeps_pause_deadline_and_updates_following_reminder(
+    monkeypatch,
+) -> None:
+    state = AppState(paused_until=200.0, next_reminder_at=0)
+    timer = ReminderTimer(AppConfig(reminder_interval_minutes=25), state)
+
+    monkeypatch.setattr(timer_module, "save_config", lambda config: None)
+    monkeypatch.setattr(timer_module.time, "monotonic", lambda: 100.0)
+
+    timer._save_settings(AppConfig(reminder_interval_minutes=10))
+
+    assert state.paused_until == 200.0
+    assert state.next_reminder_at == 800.0
+
+
+def test_open_settings_focuses_existing_window() -> None:
+    timer = ReminderTimer(AppConfig(), AppState())
+    fake_settings = FakeSettingsWindow()
+    timer.root = object()  # type: ignore[assignment]
+    timer.settings_window = fake_settings  # type: ignore[assignment]
+
+    timer._open_settings()
+
+    assert fake_settings.focus_calls == 1

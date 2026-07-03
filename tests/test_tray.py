@@ -3,6 +3,7 @@ from app.tray import (
     PAUSE_OPTIONS_MINUTES,
     _format_pause_label,
     _pause_menu,
+    _settings_action,
     _toggle_floating_action,
 )
 
@@ -37,6 +38,15 @@ def test_pause_menu_actions_pass_selected_minutes() -> None:
 def test_toggle_floating_action_calls_callback() -> None:
     calls: list[bool] = []
     action = _toggle_floating_action(lambda: calls.append(True))
+
+    action(None, None)
+
+    assert calls == [True]
+
+
+def test_settings_action_calls_callback() -> None:
+    calls: list[bool] = []
+    action = _settings_action(lambda: calls.append(True))
 
     action(None, None)
 

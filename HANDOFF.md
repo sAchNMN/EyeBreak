@@ -45,7 +45,7 @@ The project deliberately avoids non-MVP scope for now:
   * idle detection behavior.
 * Pending manual acceptance:
 
-  * none at this point.
+  * tray settings window behavior.
 * Push rule:
 
   * do not push before explicit user acceptance, such as "验收没有问题".
@@ -653,4 +653,55 @@ Test impact:
 
 Manual acceptance status:
 
-* No pending manual acceptance items are recorded at this point.
+* Tray settings window behavior is now pending manual acceptance.
+
+## Current Tray Settings Window Feature
+
+User requested continuing the next development milestone after accepted autostart, PyInstaller build output, and tray check-mark refresh work.
+
+Changed files:
+
+* `app/settings_window.py` (new)
+* `app/tray.py`
+* `app/timer.py`
+* `tests/test_settings_window.py` (new)
+* `tests/test_tray.py`
+* `tests/test_timer.py`
+* `README.md`
+* `HANDOFF.md`
+
+Current behavior:
+
+* The tray menu now has a `设置` item.
+* Selecting `设置` opens a Tkinter settings window.
+* Selecting `设置` again focuses the existing settings window instead of opening duplicates.
+* The settings window edits:
+  * reminder interval in minutes;
+  * break duration in seconds;
+  * default pause duration in minutes;
+  * idle detection threshold in minutes, where `0` disables idle detection.
+* Saving valid settings writes `config.json` through the existing `save_config()` path.
+* Saving settings hot-updates the running timer:
+  * if not paused, the next reminder countdown restarts with the new interval;
+  * if paused, the current pause deadline is preserved and the post-pause reminder time is recalculated with the new interval.
+* Invalid settings show a Tkinter error dialog and do not overwrite `config.json`.
+
+Dependency decision:
+
+* No new dependency was added.
+* Tkinter is already used by the app and is enough for this settings window.
+* No third-party settings package was added because it would increase install/build surface for a small four-field dialog.
+
+Test commands and results:
+
+* Ordinary run: `python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest` returned `46 passed, 8 errors`; errors were the known Windows sandbox `.tmp\pytest` cleanup `PermissionError: [WinError 5]`, not assertion failures.
+* Escalated rerun of the same command passed: `54 passed in 0.33s`.
+
+Manual acceptance status:
+
+* Tray settings window behavior is pending manual acceptance.
+
+Known limitations / next work:
+
+* Manual Windows acceptance still needs to verify tray menu visibility, focus behavior, save/cancel flow, invalid-value dialog, and live countdown update.
+* The settings window intentionally does not edit autostart or floating-window toggle because those already have dedicated tray controls.

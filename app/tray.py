@@ -16,6 +16,7 @@ class TrayIcon:
         on_break_now: Callable[[], None],
         on_pause: Callable[[int], None],
         on_resume: Callable[[], None],
+        on_open_settings: Callable[[], None],
         on_toggle_floating: Callable[[], None],
         get_is_floating_enabled: Callable[[], bool],
         on_toggle_autostart: Callable[[], None],
@@ -30,6 +31,7 @@ class TrayIcon:
                 pystray.MenuItem("立即休息", lambda icon, item: on_break_now()),
                 pystray.MenuItem("暂停", _pause_menu(on_pause)),
                 pystray.MenuItem("恢复", lambda icon, item: on_resume()),
+                pystray.MenuItem("设置", _settings_action(on_open_settings)),
                 pystray.MenuItem(
                     "开关悬浮窗",
                     _toggle_floating_action(on_toggle_floating),
@@ -73,6 +75,15 @@ def _pause_action(
 ) -> Callable[[pystray.Icon, pystray.MenuItem], None]:
     def action(icon: pystray.Icon, item: pystray.MenuItem) -> None:
         on_pause(minutes)
+
+    return action
+
+
+def _settings_action(
+    on_open_settings: Callable[[], None],
+) -> Callable[[pystray.Icon, pystray.MenuItem], None]:
+    def action(icon: pystray.Icon, item: pystray.MenuItem) -> None:
+        on_open_settings()
 
     return action
 

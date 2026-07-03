@@ -4,14 +4,15 @@ import time
 import tkinter as tk
 from collections.abc import Callable
 
-from app.config import AppConfig
+from app.autostart import is_autostart_enabled, set_autostart
+from app.config import AppConfig, save_config
 from app.floating_countdown import FloatingCountdownWindow
 from app.icons import apply_window_icon, ensure_icon_file, set_windows_app_user_model_id
+from app.idle import get_idle_seconds
 from app.reminder_window import ReminderWindow
+from app.settings_window import SettingsWindow
 from app.state import AppState, save_app_state
 from app.tray import TrayIcon
-from app.autostart import set_autostart, is_autostart_enabled
-from app.idle import get_idle_seconds
 
 
 class ReminderTimer:
@@ -21,6 +22,7 @@ class ReminderTimer:
         self.root: tk.Tk | None = None
         self.status_label: tk.Label | None = None
         self.countdown_window: FloatingCountdownWindow | None = None
+        self.settings_window: SettingsWindow | None = None
         self.tray_icon: TrayIcon | None = None
         self.is_showing_reminder = False
         self._was_idle = False
@@ -56,6 +58,7 @@ class ReminderTimer:
             on_break_now=lambda: self._run_on_ui_thread(self._break_now),
             on_pause=lambda minutes: self._run_on_ui_thread(lambda: self._pause(minutes)),
             on_resume=lambda: self._run_on_ui_thread(self._resume),
+            on_open_settings=lambda: self._run_on_ui_thread(self._open_settings),
             on_toggle_floating=lambda: self._run_on_ui_thread(
                 self._toggle_floating_countdown
             ),
@@ -201,6 +204,35 @@ class ReminderTimer:
     def _resume(self) -> None:
         self.state.paused_until = 0.0
         self._schedule_next_reminder()
+
+    def _open_settings(self) -> None:
+        if not self.root:
+            return
+        if self.settings_window and self.settings_window.root.winfo_exists():
+            self.settings_window.focus()
+            return
+
+        self.settings_window = SettingsWindow(
+            self.root,
+            self.config,
+            self._save_settings,
+            self._clear_settings_window,
+        )
+        self.settings_window.show()
+
+    def _save_settings(self, config: AppConfig) -> None:
+        self.config = config
+        save_config(config)
+        if self.state.paused_until > time.monotonic():
+            self.state.next_reminder_at = (
+                self.state.paused_until + self.config.reminder_interval_minutes * 60
+            )
+        else:
+            self._schedule_next_reminder()
+        self._update_countdown_display()
+
+    def _clear_settings_window(self) -> None:
+        self.settings_window = None
 
     def _toggle_floating_countdown(self) -> None:
         self.state.floating_countdown_enabled = not self.state.floating_countdown_enabled
