@@ -30,21 +30,24 @@ The project deliberately avoids non-MVP scope for now:
 
 ## Current Status
 
-* Automated tests: `27 passed` with
-  `python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest`.
+* Git status at takeover: clean and synced with `origin/master`.
+* Automated tests: `44 passed` with
+  `python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest` after escalated rerun.
+* Ordinary-permission test run returned `36 passed, 8 errors`; errors were the known Windows sandbox `.tmp\pytest` cleanup `PermissionError: [WinError 5]`, not assertion failures.
 * Manual acceptance passed:
 
   * original reminder flow;
   * earlier simple countdown status window before it was replaced;
   * system tray behavior;
   * tray pause-duration submenu;
-  * generated app/tray/window/taskbar icon visual check on Windows.
+  * generated app/tray/window/taskbar icon visual check on Windows;
+  * draggable floating countdown and position persistence milestone;
+  * idle detection behavior.
 * Pending manual acceptance:
 
-  * draggable floating countdown behavior;
-  * edge-docked auto-hide behavior;
-  * pause status label;
-  * tray floating-window toggle.
+  * autostart toggle behavior;
+  * PyInstaller build output verification, if packaging work is continued;
+  * tray check-mark immediate-update behavior, unless the user has accepted it in a later message not reflected here.
 * Push rule:
 
   * do not push before explicit user acceptance, such as "验收没有问题".
@@ -160,7 +163,13 @@ Accepted by the user:
 
 Not accepted yet:
 
-* Draggable floating countdown update from this side-conversation request.
+* Autostart toggle behavior, unless accepted in a later user message not reflected here.
+* PyInstaller build output verification, if packaging work is continued.
+* Tray check-mark immediate-update behavior, unless accepted in a later user message not reflected here.
+
+Accepted later:
+
+* Draggable floating countdown update and position persistence.
 * Idle detection feature — user confirmed acceptance with 验收没有问题.
 
 ## File Map
@@ -243,8 +252,8 @@ python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest
 
 Last known automated result:
 
-* Escalated run passed after the tab-orientation fix: `25 passed in 0.23s`.
-* Ordinary-permission run can fail during `.tmp\pytest` cleanup with
+* Escalated takeover run passed: `44 passed in 0.30s`.
+* Ordinary-permission run can fail during `.tmp\\pytest` cleanup with
   `PermissionError: [WinError 5]` in this Windows sandbox.
 
 ## Manual Acceptance Checklist
@@ -268,8 +277,9 @@ Before calling the draggable floating countdown done, verify:
 
 Pending manual validation:
 
-* Draggable floating countdown update from this side-conversation request.
-* Idle detection feature — user confirmed acceptance with 验收没有问题.
+* Autostart toggle behavior.
+* PyInstaller build output verification, if packaging work is continued.
+* Tray check-mark immediate-update behavior, unless accepted in a later user message not reflected here.
 
 Possible next refinement after acceptance:
 

@@ -37,7 +37,6 @@ Implemented:
 Pending manual acceptance:
 
 * Autostart toggle behavior.
-* Idle detection behavior - accepted by the user.
 
 Not implemented yet:
 
