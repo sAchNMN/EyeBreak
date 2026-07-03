@@ -37,7 +37,7 @@ Implemented:
 
 Pending manual acceptance:
 
-* Tray settings window behavior.
+* None at this point.
 
 Not implemented yet:
 
@@ -61,6 +61,7 @@ Manual acceptance status:
 * Autostart toggle behavior accepted by the user.
 * PyInstaller build output accepted by the user.
 * Tray check-mark immediate-refresh behavior accepted by the user.
+* Tray settings window behavior accepted by the user.
 
 ## Install
 
