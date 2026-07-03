@@ -5,7 +5,7 @@ import tkinter as tk
 from collections.abc import Callable
 
 from app.config import AppConfig
-from app.icons import apply_window_icon, ensure_icon_file
+from app.icons import apply_window_icon, ensure_icon_file, set_windows_app_user_model_id
 from app.reminder_window import ReminderWindow
 from app.state import AppState
 from app.tray import TrayIcon
@@ -21,6 +21,7 @@ class ReminderTimer:
         self.is_showing_reminder = False
 
     def run(self) -> None:
+        set_windows_app_user_model_id()
         ensure_icon_file()
         self.root = tk.Tk()
         self._build_countdown_window()

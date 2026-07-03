@@ -30,7 +30,7 @@ The project deliberately avoids non-MVP scope for now:
 
 ## Current Status
 
-* Automated tests: `11 passed` with
+* Automated tests: `13 passed` with
   `python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest`.
 * Manual acceptance passed:
 
@@ -40,7 +40,7 @@ The project deliberately avoids non-MVP scope for now:
   * tray pause-duration submenu.
 * Manual acceptance pending:
 
-  * generated app/tray/window icon visual check on Windows.
+  * generated app/tray/window/taskbar icon visual check on Windows.
 * Not implemented yet:
 
   * edge-docked auto-hide floating countdown display.
@@ -77,7 +77,8 @@ Implemented:
   fallback.
 * Timer display tests for `MM:SS` formatting.
 * Custom generated EyeBreak icon stored at `assets/eyebreak.ico`.
-* Tray icon and Tkinter window icons share the same generated icon source.
+* Tray icon, Tkinter window icons, and Windows taskbar grouping share the
+  generated EyeBreak icon path.
 * Tray icon image generation test.
 * Tray pause menu action callback arity fix:
 
@@ -109,14 +110,16 @@ Pending acceptance:
 * `app/state.py`: mutable runtime state shared by timer and UI callbacks,
   including `paused_until` and `next_reminder_at`.
 * `app/timer.py`: Tkinter `after()` scheduling loop, topmost countdown status
-  window, pause handling, tray callback routing, and reminder window launch.
+  window, pause handling, tray callback routing, Windows taskbar AppUserModelID
+  setup before root-window creation, and reminder window launch.
 * `app/reminder_window.py`: Tkinter popup UI, countdown, skip/pause/exit
   callbacks, mouse-wheel pause-duration adjustment, and optional parent window
   support.
 * `app/tray.py`: `pystray` tray icon wrapper, generated Pillow icon image, and
   pause-duration submenu options.
 * `tests/test_config.py`: config loader tests.
-* `tests/test_icons.py`: generated icon image and `.ico` file creation tests.
+* `tests/test_icons.py`: generated icon image, `.ico` file creation, and Windows
+  AppUserModelID smoke tests.
 * `tests/test_timer.py`: timer display formatting tests.
 * `tests/test_tray.py`: tray icon image generation, pause label, pause option,
   and pause submenu callback tests.
@@ -230,8 +233,12 @@ python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest
 
 Last known automated result:
 
-* `11 passed` after generated application icon tests and the tray pause submenu
-  callback arity fix.
+* First current run failed with `9 passed, 4 errors` because `.tmp` did not
+  exist.
+* Second current run failed during pytest temporary-directory cleanup with
+  `PermissionError: [WinError 5] 拒绝访问。: 'G:\桌面\EyeBreak\.tmp\pytest'`.
+* Escalated rerun passed with `13 passed` after Windows taskbar AppUserModelID
+  tests and the existing tray pause submenu callback arity coverage.
 
 Known environment note:
 
@@ -274,7 +281,8 @@ Before calling a UI change done, verify:
 
 Pending manual validation:
 
-* Manually validate the generated tray icon and window title-bar icon on Windows.
+* Manually validate the generated tray icon, window title-bar icon, and Windows
+  taskbar icon on Windows.
 
 Planned user-requested feature:
 

@@ -15,7 +15,7 @@ Implemented:
 * Skip, pause, resume, immediate break, and exit flows.
 * Mouse-wheel pause-duration adjustment on the reminder popup pause button.
 * System tray menu powered by `pystray`.
-* Custom EyeBreak icon used by the tray and Tkinter windows.
+* Custom EyeBreak icon used by the tray, Tkinter windows, and Windows taskbar grouping.
 * Tray pause menu with selectable pause durations:
 
   * 5 minutes;
@@ -47,8 +47,9 @@ Manual acceptance status:
 * Countdown status window accepted by the user.
 * System tray behavior accepted by the user.
 * Tray pause-duration selection accepted by the user.
-* Program icon implementation is automated-test covered, but visual UI
-  acceptance on Windows is still pending.
+* Program icon implementation is automated-test covered, including the Windows
+  taskbar AppUserModelID hook, but visual UI acceptance on Windows is still
+  pending.
 
 ## Install
 
@@ -96,7 +97,7 @@ Run automated tests:
 python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest
 ```
 
-Last known automated result: `11 passed` with the command above.
+Last known automated result: `13 passed` with the command above.
 
 Environment note:
 
@@ -155,6 +156,7 @@ Before a UI milestone is considered accepted, manually verify the relevant flow.
 * Tray icon appears correctly in the Windows system tray.
 * Countdown status window shows the EyeBreak icon in the title bar.
 * Reminder popup shows the EyeBreak icon in the title bar.
+* Windows taskbar shows the EyeBreak icon instead of the default Python icon.
 * Icon appearance is visually acceptable on Windows.
 
 ## Release Discipline

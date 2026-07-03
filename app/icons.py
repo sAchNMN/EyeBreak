@@ -1,12 +1,14 @@
 ﻿from __future__ import annotations
 
+import sys
 import tkinter as tk
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter, ImageTk
 
 
 ICON_PATH = Path("assets") / "eyebreak.ico"
+APP_USER_MODEL_ID = "EyeBreak.Desktop.Reminder"
 
 
 def ensure_icon_file(path: Path = ICON_PATH) -> Path:
@@ -103,7 +105,27 @@ def create_icon_image(size: int = 64) -> Image.Image:
 
 
 def apply_window_icon(window: tk.Tk | tk.Toplevel) -> None:
+    icon_path = ensure_icon_file().resolve()
     try:
-        window.iconbitmap(default=str(ensure_icon_file()))
+        window.iconbitmap(default=str(icon_path))
     except tk.TclError:
+        pass
+
+    try:
+        photo = ImageTk.PhotoImage(create_icon_image(256))
+        window.iconphoto(True, photo)
+        window._eyebreak_icon_photo = photo
+    except tk.TclError:
+        pass
+
+
+def set_windows_app_user_model_id(app_id: str = APP_USER_MODEL_ID) -> None:
+    if sys.platform != "win32":
+        return
+
+    try:
+        import ctypes
+
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+    except (AttributeError, OSError, ValueError):
         return
