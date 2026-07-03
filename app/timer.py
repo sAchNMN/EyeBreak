@@ -10,6 +10,7 @@ from app.icons import apply_window_icon, ensure_icon_file, set_windows_app_user_
 from app.reminder_window import ReminderWindow
 from app.state import AppState, save_app_state
 from app.tray import TrayIcon
+from app.autostart import set_autostart, is_autostart_enabled
 
 
 class ReminderTimer:
@@ -55,6 +56,9 @@ class ReminderTimer:
             on_resume=lambda: self._run_on_ui_thread(self._resume),
             on_toggle_floating=lambda: self._run_on_ui_thread(
                 self._toggle_floating_countdown
+            ),
+            on_toggle_autostart=lambda: self._run_on_ui_thread(
+                self._toggle_autostart
             ),
             on_exit=lambda: self._run_on_ui_thread(self._exit),
         )
@@ -176,6 +180,10 @@ class ReminderTimer:
         self.state.floating_countdown_enabled = not self.state.floating_countdown_enabled
         if self.countdown_window:
             self.countdown_window.set_enabled(self.state.floating_countdown_enabled)
+
+    def _toggle_autostart(self) -> None:
+        enabled = not is_autostart_enabled()
+        set_autostart(enabled)
 
     def _exit(self) -> None:
         self.state.is_running = False

@@ -18,6 +18,7 @@ Implemented:
 * Hidden floating countdown skips visible number redraws and refreshes immediately when revealed.
 * Floating countdown marks pause state with "暂停中".
 * System tray menu powered by `pystray`, including a floating-window toggle.
+* Autostart toggle in the tray menu, persistent through Windows registry (HKCU\...\Run).
 * Topmost reminder popup with break countdown.
 * Skip, pause, resume, immediate break, and exit flows.
 * Mouse-wheel pause-duration adjustment on the reminder popup pause button.
@@ -33,12 +34,11 @@ Implemented:
 
 Pending manual acceptance:
 
-* Draggable floating countdown behavior, edge-docked auto-hide behavior, pause status label, and tray floating-window toggle.
+* Autostart toggle behavior.
 
 Not implemented yet:
 
 * Packaging.
-* Startup integration.
 * Accounts.
 * Cloud sync.
 * Daily reports.
@@ -102,7 +102,7 @@ Run automated tests:
 python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest
 ```
 
-Last known automated result: `31 passed` with the command above.
+Last known automated result: `40 passed` with the command above.
 
 Environment note:
 
@@ -166,7 +166,9 @@ Before a UI milestone is considered accepted, manually verify the relevant flow.
   pause length, not the fixed configured default.
 * Tray menu item "恢复" clears pause and starts a fresh reminder countdown.
 * Tray menu item "开关悬浮窗" hides or shows the floating countdown panel.
-* Tray menu item "退出" terminates the app and removes the tray icon.
+* Tray menu item "开机自启" toggles the EyeBreak entry in Windows registry
+  (HKCU\...\Run). When checked, the app starts automatically on user login.
+  Tray menu item "退出" terminates the app and removes the tray icon.
 
 ### Icon Check
 
@@ -198,6 +200,7 @@ The draggable floating countdown and position-persistence update has been accept
 
 Possible next refinement after acceptance:
 
-* Tune the docking threshold, hidden tab width, or drag feel if manual acceptance shows the interaction is too sensitive or too hard to trigger.
-
-Do not start packaging or startup integration before tray behavior, icon behavior, and floating countdown behavior are stable.
+* Build a standalone `.exe` with PyInstaller so users can run EyeBreak without
+  installing Python.
+* Tune the docking threshold, hidden tab width, or drag feel if manual acceptance
+  shows the interaction is too sensitive or too hard to trigger.

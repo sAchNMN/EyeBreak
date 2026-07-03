@@ -458,3 +458,37 @@ Commit readiness:
 * `README.md` now marks the current milestone as accepted.
 * `HANDOFF.md` records this acceptance before commit.
 * `CLAUDE.md` remains untracked local state and must not be staged.
+
+## Current Autostart Feature
+
+Changed files:
+
+* `app/autostart.py` (new)
+* `app/tray.py`
+* `app/timer.py`
+* `tests/test_autostart.py` (new)
+* `README.md`
+* `HANDOFF.md`
+* `.gitignore`
+
+Current behavior:
+
+* The tray menu now has a "开机自启" item with a check mark showing the current state.
+* Clicking the item toggles the EyeBreak entry in `HKCU\...\Run`.
+* When running from Python source, the registered command uses `pythonw.exe main.py` (no console window).
+* When running from a PyInstaller-built executable, the registered command uses the exe path directly.
+* On user login, EyeBreak starts automatically when the entry is enabled.
+
+Dependency decision:
+
+* No new package was added.
+* Python standard-library `winreg` handles the Windows Registry; no external dependency needed.
+
+Test commands and results:
+
+* `python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest` returned `40 passed in 0.29s`.
+* 9 new tests in `tests/test_autostart.py` cover registry write/delete/read and path generation (pythonw/python.exe/frozen).
+
+Manual acceptance status:
+
+* Autostart toggle behavior has not been manually accepted yet.
