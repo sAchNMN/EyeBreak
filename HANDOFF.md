@@ -161,6 +161,7 @@ Accepted by the user:
 Not accepted yet:
 
 * Draggable floating countdown update from this side-conversation request.
+* Idle detection feature — user confirmed acceptance with 验收没有问题.
 
 ## File Map
 
@@ -268,6 +269,7 @@ Before calling the draggable floating countdown done, verify:
 Pending manual validation:
 
 * Draggable floating countdown update from this side-conversation request.
+* Idle detection feature — user confirmed acceptance with 验收没有问题.
 
 Possible next refinement after acceptance:
 
@@ -611,4 +613,4 @@ Test commands and results:
 
 Manual acceptance status:
 
-* Idle detection behavior has not been manually accepted yet.
+* Idle detection behavior has been accepted by the user.
