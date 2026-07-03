@@ -37,9 +37,7 @@ The project deliberately avoids non-MVP scope for now:
   * original reminder flow;
   * simple countdown status window;
   * system tray behavior;
-  * tray pause-duration submenu.
-* Manual acceptance pending:
-
+  * tray pause-duration submenu;
   * generated app/tray/window/taskbar icon visual check on Windows.
 * Not implemented yet:
 
@@ -95,11 +93,8 @@ Accepted by the user:
 * System tray behavior had no issues.
 * Tray pause-duration submenu had no issues.
 * Every tray pause duration was confirmed to take effect.
-
-Pending acceptance:
-
-* Icon implementation is automated-test covered, but visual UI acceptance on
-  Windows is still pending.
+* Generated app/tray/window/taskbar icon behavior was confirmed to have no
+  issues by the user.
 
 ## File Map
 
@@ -281,8 +276,7 @@ Before calling a UI change done, verify:
 
 Pending manual validation:
 
-* Manually validate the generated tray icon, window title-bar icon, and Windows
-  taskbar icon on Windows.
+* None for the accepted icon milestone.
 
 Planned user-requested feature:
 

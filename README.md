@@ -47,9 +47,8 @@ Manual acceptance status:
 * Countdown status window accepted by the user.
 * System tray behavior accepted by the user.
 * Tray pause-duration selection accepted by the user.
-* Program icon implementation is automated-test covered, including the Windows
-  taskbar AppUserModelID hook, but visual UI acceptance on Windows is still
-  pending.
+* Program icon implementation accepted by the user, including tray, window,
+  and Windows taskbar icon behavior.
 
 ## Install
 
