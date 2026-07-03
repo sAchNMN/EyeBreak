@@ -16,8 +16,9 @@ Implemented:
 * Floating countdown auto-hides only when docked to a screen edge.
 * Floating countdown stays fully visible when it is not edge-docked.
 * Hidden floating countdown skips visible number redraws and refreshes immediately when revealed.
-* Floating countdown marks pause state with "暂停中" and idle state with "已离开".
+* Floating countdown marks pause state with "暂停中", idle state with "已离开", and fullscreen state with "全屏中".
 * Idle detection (5 minutes by default) — when the user is away, reminders pause automatically and resume when they return.
+* Fullscreen detection — when a fullscreen app is active, reminders are delayed and resume after fullscreen exits.
 * System tray menu powered by `pystray`, including a floating-window toggle and settings window.
 * Autostart toggle in the tray menu, persistent through Windows registry (HKCU\...\Run).
 * Topmost reminder popup with break countdown.
@@ -32,12 +33,12 @@ Implemented:
   * 60 minutes;
   * 120 minutes.
 
-* JSON configuration for reminder interval, break duration, pause duration, and idle threshold.
-* Tray settings window for editing reminder interval, break duration, default pause duration, and idle threshold without manually editing `config.json`.
+* JSON configuration for reminder interval, break duration, pause duration, idle threshold, and fullscreen detection.
+* Tray settings window for editing reminder interval, break duration, default pause duration, idle threshold, and fullscreen detection without manually editing `config.json`.
 
 Pending manual acceptance:
 
-* None at this point.
+* Fullscreen detection behavior.
 
 Not implemented yet:
 
@@ -109,7 +110,7 @@ Run automated tests:
 python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest
 ```
 
-Last known automated result: `54 passed` with the command above after escalated rerun.
+Last known automated result: `64 passed` with the command above after escalated rerun.
 
 ## Build
 
@@ -150,6 +151,7 @@ Before a UI milestone is considered accepted, manually verify the relevant flow.
 * While the panel is hidden, the app keeps timing reminders but skips visible number redraws until reveal.
 * During pause, the panel title says "暂停中" and the remaining pause time is yellow.
 * When the user is idle (away from keyboard/mouse) for the `idle_threshold_minutes`, the panel title says "已离开" in gray.
+* When a fullscreen app is active, the panel title says "全屏中" in blue and reminders are delayed.
 * After exiting and starting again, the floating panel returns to its last saved position.
 * After pause ends, reminders resume and the floating panel shows the next reminder countdown.
 * The tray menu item "开关悬浮窗" hides and shows the floating countdown without stopping reminders.
@@ -169,6 +171,15 @@ Before a UI milestone is considered accepted, manually verify the relevant flow.
 * When the user is away from the computer for `idle_threshold_minutes` (default 5), the floating countdown panel changes to "已离开" and reminders stop appearing.
 * When the user returns (moves the mouse or presses a key), the reminder interval restarts from the beginning.
 * Set `idle_threshold_minutes` to `0` in `config.json` to disable idle detection.
+
+
+### Fullscreen Detection
+
+* When a fullscreen game, video, or presentation is active, the reminder popup does not appear.
+* The floating countdown panel changes to "全屏中" and shows `--:--` while fullscreen is active.
+* After exiting fullscreen, the next reminder interval restarts from the beginning.
+* The settings window checkbox "全屏时延后提醒" can disable or enable this behavior.
+* Non-fullscreen foreground windows do not delay reminders.
 
 ### Pause Flow
 
@@ -204,12 +215,13 @@ Before a UI milestone is considered accepted, manually verify the relevant flow.
 ### Settings Window
 
 * Tray menu item "设置" opens one settings window; selecting it again focuses the existing window.
-* The window shows current reminder interval, break duration, default pause duration, and idle detection threshold.
+* The window shows current reminder interval, break duration, default pause duration, idle detection threshold, and fullscreen detection toggle.
 * Saving valid values writes `config.json`.
 * Invalid values show an error and do not overwrite `config.json`.
 * Saved reminder interval takes effect immediately for the next reminder countdown.
 * If reminders are currently paused, saving settings keeps the current pause deadline and updates the reminder scheduled after the pause ends.
 * Setting idle detection to `0` disables idle detection.
+* Unchecking "全屏时延后提醒" disables fullscreen-based reminder delay.
 
 ### Icon Check
 
@@ -237,7 +249,6 @@ Summary:
 
 ## Next Planned Feature
 
-Idle detection has been implemented. Next:
+Fullscreen detection has been implemented and is pending manual acceptance. Next:
 
-* Tune the docking threshold, hidden tab width, or drag feel if manual acceptance
-  shows the interaction is too sensitive or too hard to trigger.
+* Tune fullscreen detection behavior if manual acceptance shows false positives or missed fullscreen apps.

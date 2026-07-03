@@ -7,6 +7,7 @@ from collections.abc import Callable
 from app.autostart import is_autostart_enabled, set_autostart
 from app.config import AppConfig, save_config
 from app.floating_countdown import FloatingCountdownWindow
+from app.fullscreen import is_foreground_window_fullscreen
 from app.icons import apply_window_icon, ensure_icon_file, set_windows_app_user_model_id
 from app.idle import get_idle_seconds
 from app.reminder_window import ReminderWindow
@@ -26,6 +27,7 @@ class ReminderTimer:
         self.tray_icon: TrayIcon | None = None
         self.is_showing_reminder = False
         self._was_idle = False
+        self._was_fullscreen = False
 
     def run(self) -> None:
         set_windows_app_user_model_id()
@@ -97,21 +99,13 @@ class ReminderTimer:
         if self.state.paused_until and self.state.paused_until <= now:
             self.state.paused_until = 0.0
 
-        idle_threshold_seconds = self.config.idle_threshold_minutes * 60
-        if idle_threshold_seconds > 0:
-            is_idle = get_idle_seconds() >= idle_threshold_seconds
-            if is_idle:
-                if not self._was_idle:
-                    self._was_idle = True
-                    if self.countdown_window:
-                        self.countdown_window.set_idle(True)
-                self.root.after(1000, self._tick)
-                return
-            if self._was_idle:
-                self._was_idle = False
-                self._schedule_next_reminder()
-                if self.countdown_window:
-                    self.countdown_window.set_idle(False)
+        if self._handle_idle_state():
+            self.root.after(1000, self._tick)
+            return
+
+        if self._handle_fullscreen_state():
+            self.root.after(1000, self._tick)
+            return
 
         remaining_seconds = self.state.next_reminder_at - now
         if remaining_seconds <= 0:
@@ -126,6 +120,49 @@ class ReminderTimer:
         self._update_countdown_display(now)
         self.root.after(1000, self._tick)
 
+    def _handle_idle_state(self) -> bool:
+        idle_threshold_seconds = self.config.idle_threshold_minutes * 60
+        if idle_threshold_seconds <= 0:
+            return False
+
+        is_idle = get_idle_seconds() >= idle_threshold_seconds
+        if is_idle:
+            if not self._was_idle:
+                self._was_idle = True
+                if self.countdown_window:
+                    self.countdown_window.set_idle(True)
+            return True
+
+        if self._was_idle:
+            self._was_idle = False
+            self._schedule_next_reminder()
+            if self.countdown_window:
+                self.countdown_window.set_idle(False)
+        return False
+
+    def _handle_fullscreen_state(self) -> bool:
+        if not self.config.fullscreen_detection_enabled:
+            if self._was_fullscreen:
+                self._was_fullscreen = False
+                if self.countdown_window:
+                    self.countdown_window.set_fullscreen(False)
+            return False
+
+        is_fullscreen = is_foreground_window_fullscreen()
+        if is_fullscreen:
+            if not self._was_fullscreen:
+                self._was_fullscreen = True
+                if self.countdown_window:
+                    self.countdown_window.set_fullscreen(True)
+            return True
+
+        if self._was_fullscreen:
+            self._was_fullscreen = False
+            self._schedule_next_reminder()
+            if self.countdown_window:
+                self.countdown_window.set_fullscreen(False)
+        return False
+
     def _update_countdown_display(self, now: float | None = None) -> None:
         if not self._should_update_countdown_display():
             return
@@ -135,6 +172,12 @@ class ReminderTimer:
             if self.countdown_window:
                 self.countdown_window.set_idle(True)
             self._configure_countdown_label("--:--", "#9ca3af")
+            return
+
+        if self._was_fullscreen:
+            if self.countdown_window:
+                self.countdown_window.set_fullscreen(True)
+            self._configure_countdown_label("--:--", "#60a5fa")
             return
 
         if self.state.paused_until > current_time:

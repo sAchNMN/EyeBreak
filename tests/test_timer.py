@@ -10,6 +10,7 @@ class FakeFloatingCountdown:
         self.enabled_values: list[bool] = []
         self.paused_values: list[bool] = []
         self.idle_values: list[bool] = []
+        self.fullscreen_values: list[bool] = []
 
     def set_enabled(self, is_enabled: bool) -> None:
         self.enabled_values.append(is_enabled)
@@ -19,6 +20,9 @@ class FakeFloatingCountdown:
 
     def set_idle(self, is_idle: bool) -> None:
         self.idle_values.append(is_idle)
+
+    def set_fullscreen(self, is_fullscreen: bool) -> None:
+        self.fullscreen_values.append(is_fullscreen)
 
     def should_update_display(self) -> bool:
         return self.should_update
@@ -115,6 +119,55 @@ def test_idle_display_shows_dashes_and_gray_status() -> None:
 
     assert fake_window.idle_values == [True]
     assert fake_label.configure_calls == [{"text": "--:--", "fg": "#9ca3af"}]
+
+
+def test_fullscreen_display_shows_dashes_and_blue_status() -> None:
+    state = AppState(next_reminder_at=70)
+    timer = ReminderTimer(AppConfig(), state)
+    timer._was_fullscreen = True
+    fake_window = FakeFloatingCountdown(should_update=True)
+    fake_label = FakeLabel()
+    timer.countdown_window = fake_window  # type: ignore[assignment]
+    timer.status_label = fake_label  # type: ignore[assignment]
+
+    timer._update_countdown_display(now=10)
+
+    assert fake_window.fullscreen_values == [True]
+    assert fake_label.configure_calls == [{"text": "--:--", "fg": "#60a5fa"}]
+
+
+def test_handle_fullscreen_state_suppresses_reminder(monkeypatch) -> None:
+    timer = ReminderTimer(AppConfig(fullscreen_detection_enabled=True), AppState())
+    fake_window = FakeFloatingCountdown()
+    timer.countdown_window = fake_window  # type: ignore[assignment]
+    monkeypatch.setattr(timer_module, "is_foreground_window_fullscreen", lambda: True)
+
+    assert timer._handle_fullscreen_state() is True
+    assert timer._was_fullscreen is True
+    assert fake_window.fullscreen_values == [True]
+
+
+def test_handle_fullscreen_exit_restarts_reminder(monkeypatch) -> None:
+    state = AppState(next_reminder_at=0)
+    timer = ReminderTimer(AppConfig(reminder_interval_minutes=10), state)
+    timer._was_fullscreen = True
+    fake_window = FakeFloatingCountdown()
+    timer.countdown_window = fake_window  # type: ignore[assignment]
+    monkeypatch.setattr(timer_module, "is_foreground_window_fullscreen", lambda: False)
+    monkeypatch.setattr(timer_module.time, "monotonic", lambda: 100.0)
+
+    assert timer._handle_fullscreen_state() is False
+    assert timer._was_fullscreen is False
+    assert state.next_reminder_at == 700.0
+    assert fake_window.fullscreen_values == [False]
+
+
+def test_disabled_fullscreen_detection_does_not_suppress_reminder(monkeypatch) -> None:
+    timer = ReminderTimer(AppConfig(fullscreen_detection_enabled=False), AppState())
+    monkeypatch.setattr(timer_module, "is_foreground_window_fullscreen", lambda: True)
+
+    assert timer._handle_fullscreen_state() is False
+    assert timer._was_fullscreen is False
 
 
 def test_save_settings_updates_config_and_next_reminder(monkeypatch) -> None:

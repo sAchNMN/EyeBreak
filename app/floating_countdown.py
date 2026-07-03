@@ -195,6 +195,14 @@ class FloatingCountdownWindow:
             return
         self.status_label.configure(text="下次护眼提醒", fg="#a7f3d0")
 
+    def set_fullscreen(self, is_fullscreen: bool) -> None:
+        if not self.status_label:
+            return
+        if is_fullscreen:
+            self.status_label.configure(text="全屏中", fg="#60a5fa")
+            return
+        self.status_label.configure(text="下次护眼提醒", fg="#a7f3d0")
+
     def show(self, _event: tk.Event | None = None) -> None:
         if not self._is_enabled:
             return

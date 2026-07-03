@@ -45,7 +45,7 @@ The project deliberately avoids non-MVP scope for now:
   * idle detection behavior.
 * Pending manual acceptance:
 
-  * none at this point.
+  * fullscreen detection behavior.
 * Push rule:
 
   * do not push before explicit user acceptance, such as "验收没有问题".
@@ -734,3 +734,60 @@ Test impact:
 Manual acceptance status:
 
 * No pending manual acceptance items are recorded at this point.
+## Current Fullscreen Detection Feature
+
+User approved the next planned feature after settings window acceptance.
+
+Changed files:
+
+* `app/config.py`
+* `app/fullscreen.py` (new)
+* `app/floating_countdown.py`
+* `app/settings_window.py`
+* `app/timer.py`
+* `tests/test_config.py`
+* `tests/test_fullscreen.py` (new)
+* `tests/test_settings_window.py`
+* `tests/test_timer.py`
+* `README.md`
+* `HANDOFF.md`
+
+Current behavior:
+
+* `AppConfig` now has `fullscreen_detection_enabled`, defaulting to `True`.
+* Existing `config.json` files without the new field still load with fullscreen detection enabled.
+* The settings window has a `全屏时延后提醒` checkbox.
+* `app/fullscreen.py` uses Windows APIs through standard-library `ctypes`:
+  * foreground window handle;
+  * shell-window exclusion;
+  * foreground window rectangle;
+  * nearest monitor rectangle;
+  * edge comparison with a 2px tolerance.
+* On non-Windows or API failure, fullscreen detection returns `False`.
+* When fullscreen is active and the feature is enabled:
+  * reminder popup is suppressed;
+  * floating countdown status changes to `全屏中` in blue;
+  * countdown text shows `--:--`.
+* When fullscreen exits, EyeBreak restarts the next reminder interval from the beginning.
+* Idle detection still takes priority over fullscreen detection.
+* Pause still takes priority over idle/fullscreen checks.
+
+Dependency decision:
+
+* No new package was added.
+* Python standard-library `ctypes` is enough for foreground-window and monitor detection.
+* External Windows GUI packages were rejected because they would increase runtime/build surface for a small platform API wrapper.
+
+Test commands and results:
+
+* Ordinary run: `python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest` returned `54 passed, 10 errors`; errors were the known Windows sandbox `.tmp\pytest` cleanup `PermissionError: [WinError 5]`, not assertion failures.
+* Escalated rerun of the same command passed after final encoding cleanup: `64 passed in 0.40s`.
+
+Manual acceptance status:
+
+* Fullscreen detection behavior is pending manual acceptance.
+
+Known limitations / next work:
+
+* Encoding cleanup removed accidental BOM churn from Python files that do not use BOM and kept existing BOM on files that already used it.`r`n* Manual Windows acceptance still needs to verify common fullscreen targets such as video players, browsers, games, and PowerPoint slideshow.
+* Borderless fullscreen apps should work when their foreground window covers the monitor rectangle, but this still needs real app validation.

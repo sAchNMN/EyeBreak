@@ -22,6 +22,9 @@ class SettingsWindow:
         self.on_close = on_close
         self.root = tk.Toplevel(master)
         self.entries: dict[str, tk.Entry] = {}
+        self.fullscreen_detection_enabled = tk.BooleanVar(
+            value=config.fullscreen_detection_enabled
+        )
         self._build_window()
 
     def show(self) -> None:
@@ -36,7 +39,7 @@ class SettingsWindow:
     def _build_window(self) -> None:
         self.root.title("EyeBreak 设置")
         apply_window_icon(self.root)
-        self.root.geometry("360x280")
+        self.root.geometry("380x320")
         self.root.resizable(False, False)
         self.root.configure(bg="#f5f7fb")
         self.root.protocol("WM_DELETE_WINDOW", self._close)
@@ -72,9 +75,18 @@ class SettingsWindow:
             self.config.idle_threshold_minutes,
             3,
         )
+        tk.Checkbutton(
+            container,
+            text="全屏时延后提醒",
+            variable=self.fullscreen_detection_enabled,
+            bg="#f5f7fb",
+            fg="#1f2937",
+            activebackground="#f5f7fb",
+            font=("Microsoft YaHei UI", 10),
+        ).grid(row=4, column=0, columnspan=2, sticky="w", pady=(10, 2))
 
         button_frame = tk.Frame(container, bg="#f5f7fb")
-        button_frame.grid(row=4, column=0, columnspan=2, sticky="e", pady=(18, 0))
+        button_frame.grid(row=5, column=0, columnspan=2, sticky="e", pady=(18, 0))
         tk.Button(button_frame, text="取消", width=9, command=self._close).pack(
             side=tk.LEFT,
             padx=(0, 8),
@@ -111,6 +123,7 @@ class SettingsWindow:
                 self.entries["break_duration_seconds"].get(),
                 self.entries["pause_minutes"].get(),
                 self.entries["idle_threshold_minutes"].get(),
+                self.fullscreen_detection_enabled.get(),
             )
         except ValueError as exc:
             messagebox.showerror("设置无效", str(exc), parent=self.root)
@@ -130,6 +143,7 @@ def parse_settings_values(
     break_duration_seconds: str,
     pause_minutes: str,
     idle_threshold_minutes: str,
+    fullscreen_detection_enabled: bool = True,
 ) -> AppConfig:
     return AppConfig(
         reminder_interval_minutes=_positive_float(
@@ -148,6 +162,7 @@ def parse_settings_values(
             idle_threshold_minutes,
             "离开检测不能小于 0",
         ),
+        fullscreen_detection_enabled=fullscreen_detection_enabled,
     )
 
 
