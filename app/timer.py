@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import time
 import tkinter as tk
@@ -8,7 +8,7 @@ from app.config import AppConfig
 from app.floating_countdown import FloatingCountdownWindow
 from app.icons import apply_window_icon, ensure_icon_file, set_windows_app_user_model_id
 from app.reminder_window import ReminderWindow
-from app.state import AppState
+from app.state import AppState, save_app_state
 from app.tray import TrayIcon
 
 
@@ -37,14 +37,25 @@ class ReminderTimer:
             return
 
         apply_window_icon(self.root)
-        self.countdown_window = FloatingCountdownWindow(self.root)
-        self.status_label = self.countdown_window.build(self._exit)
+        self.countdown_window = FloatingCountdownWindow(
+            self.root,
+            initial_edge=self.state.floating_countdown_edge,  # type: ignore[arg-type]
+            initial_x=self.state.floating_countdown_x,
+            initial_y=self.state.floating_countdown_y,
+        )
+        self.status_label = self.countdown_window.build(
+            self._exit,
+            on_show=self._update_countdown_display,
+        )
 
     def _start_tray_icon(self) -> None:
         self.tray_icon = TrayIcon(
             on_break_now=lambda: self._run_on_ui_thread(self._break_now),
             on_pause=lambda minutes: self._run_on_ui_thread(lambda: self._pause(minutes)),
             on_resume=lambda: self._run_on_ui_thread(self._resume),
+            on_toggle_floating=lambda: self._run_on_ui_thread(
+                self._toggle_floating_countdown
+            ),
             on_exit=lambda: self._run_on_ui_thread(self._exit),
         )
         self.tray_icon.start()
@@ -68,10 +79,7 @@ class ReminderTimer:
 
         now = time.monotonic()
         if self.state.paused_until > now:
-            self.status_label.configure(
-                text=format_seconds(self.state.paused_until - now),
-                fg="#fbbf24",
-            )
+            self._update_countdown_display(now)
             self.root.after(1000, self._tick)
             return
 
@@ -80,7 +88,7 @@ class ReminderTimer:
 
         remaining_seconds = self.state.next_reminder_at - now
         if remaining_seconds <= 0:
-            self.status_label.configure(text="00:00", fg="#f9fafb")
+            self._configure_countdown_label("00:00", "#f9fafb")
             self._show_reminder()
             if self.state.is_running and self.state.paused_until <= time.monotonic():
                 self._schedule_next_reminder()
@@ -88,8 +96,42 @@ class ReminderTimer:
             self.root.after(1000, self._tick)
             return
 
-        self.status_label.configure(text=format_seconds(remaining_seconds), fg="#f9fafb")
+        self._update_countdown_display(now)
         self.root.after(1000, self._tick)
+
+    def _update_countdown_display(self, now: float | None = None) -> None:
+        if not self._should_update_countdown_display():
+            return
+
+        current_time = time.monotonic() if now is None else now
+        if self.state.paused_until > current_time:
+            if self.countdown_window:
+                self.countdown_window.set_paused(True)
+            self._configure_countdown_label(
+                format_seconds(self.state.paused_until - current_time),
+                "#fbbf24",
+            )
+            return
+
+        if self.countdown_window:
+            self.countdown_window.set_paused(False)
+        self._configure_countdown_label(
+            format_seconds(self.state.next_reminder_at - current_time),
+            "#f9fafb",
+        )
+
+    def _should_update_countdown_display(self) -> bool:
+        if not self.status_label:
+            return False
+        if not self.countdown_window:
+            return True
+        return self.countdown_window.should_update_display()
+
+    def _configure_countdown_label(self, text: str, fg: str) -> None:
+        if not self._should_update_countdown_display():
+            return
+        if self.status_label:
+            self.status_label.configure(text=text, fg=fg)
 
     def _show_reminder(self) -> None:
         if not self.root or self.is_showing_reminder:
@@ -130,8 +172,19 @@ class ReminderTimer:
         self.state.paused_until = 0.0
         self._schedule_next_reminder()
 
+    def _toggle_floating_countdown(self) -> None:
+        self.state.floating_countdown_enabled = not self.state.floating_countdown_enabled
+        if self.countdown_window:
+            self.countdown_window.set_enabled(self.state.floating_countdown_enabled)
+
     def _exit(self) -> None:
         self.state.is_running = False
+        if self.countdown_window:
+            edge, x, y = self.countdown_window.placement()
+            self.state.floating_countdown_edge = edge
+            self.state.floating_countdown_x = x
+            self.state.floating_countdown_y = y
+        save_app_state(self.state)
         if self.tray_icon:
             self.tray_icon.stop()
         if self.root:

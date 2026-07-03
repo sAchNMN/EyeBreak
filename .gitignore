@@ -7,3 +7,8 @@ __pycache__/
 # Local tools and scratch state
 .mimocode/
 mimo.exe
+app_state.json
+
+# Local AI tool artifacts
+.reasonix/
+CLAUDE.md

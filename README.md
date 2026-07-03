@@ -4,18 +4,23 @@ EyeBreak is a small Windows eye-break reminder built with Python, Tkinter, and
 `pystray`.
 
 It reminds the user to look far away after a configurable interval, shows a
-right-edge auto-hide floating countdown, and provides tray-menu controls for
-common actions.
+draggable floating countdown, and provides tray-menu controls for common actions.
 
 ## Current Status
 
 Implemented:
 
-* Right-edge docked auto-hide floating countdown showing time until the next reminder.
+* Draggable floating countdown showing time until the next reminder.
+* Floating countdown can be moved anywhere on screen.
+* Floating countdown remembers its last position after normal app exit.
+* Floating countdown auto-hides only when docked to a screen edge.
+* Floating countdown stays fully visible when it is not edge-docked.
+* Hidden floating countdown skips visible number redraws and refreshes immediately when revealed.
+* Floating countdown marks pause state with "暂停中".
+* System tray menu powered by `pystray`, including a floating-window toggle.
 * Topmost reminder popup with break countdown.
 * Skip, pause, resume, immediate break, and exit flows.
 * Mouse-wheel pause-duration adjustment on the reminder popup pause button.
-* System tray menu powered by `pystray`.
 * Custom EyeBreak icon used by the tray, Tkinter reminder window, and Windows taskbar grouping.
 * Tray pause menu with selectable pause durations:
 
@@ -24,15 +29,11 @@ Implemented:
   * 30 minutes;
   * 60 minutes;
   * 120 minutes.
-* JSON configuration for:
-
-  * reminder interval;
-  * break duration;
-  * pause duration.
+* JSON configuration for reminder interval, break duration, and pause duration.
 
 Pending manual acceptance:
 
-* Right-edge docked auto-hide floating countdown display.
+* Draggable floating countdown behavior, edge-docked auto-hide behavior, pause status label, and tray floating-window toggle.
 
 Not implemented yet:
 
@@ -53,7 +54,7 @@ Manual acceptance status:
 * Tray pause-duration selection accepted by the user.
 * Program icon implementation accepted by the user, including tray, window,
   and Windows taskbar icon behavior.
-* Floating countdown display is implemented but not yet accepted by the user.
+* Current draggable floating countdown and position-persistence update accepted by the user.
 
 ## Install
 
@@ -101,7 +102,7 @@ Run automated tests:
 python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest
 ```
 
-Last known automated result: `18 passed` with the command above.
+Last known automated result: `31 passed` with the command above.
 
 Environment note:
 
@@ -117,12 +118,18 @@ Before a UI milestone is considered accepted, manually verify the relevant flow.
 ### Floating Countdown
 
 * On startup, only a narrow tab is visible on the right edge of the screen.
-* Moving the mouse pointer onto the tab reveals the countdown panel.
-* Moving the mouse pointer away hides the panel again after a short delay.
+* Moving the mouse pointer onto the tab reveals the countdown panel and immediately refreshes the displayed time.
+* Dragging the panel away from every screen edge leaves it fully visible and disables auto-hide.
+* Dragging the panel to the left, right, top, or bottom edge docks it to that edge.
+* When docked, moving the mouse pointer outside the panel hides it immediately and leaves only the tab visible.
+* The bright tab stays on the inside edge: left side when docked right, right side when docked left, bottom when docked top, and top when docked bottom.
 * The countdown panel shows time until the next reminder.
-* The countdown text updates once per second.
-* During pause, the countdown panel shows remaining pause time in yellow.
+* The countdown text updates once per second while the panel is visible.
+* While the panel is hidden, the app keeps timing reminders but skips visible number redraws until reveal.
+* During pause, the panel title says "暂停中" and the remaining pause time is yellow.
+* After exiting and starting again, the floating panel returns to its last saved position.
 * After pause ends, reminders resume and the floating panel shows the next reminder countdown.
+* The tray menu item "开关悬浮窗" hides and shows the floating countdown without stopping reminders.
 * The floating panel stays above normal windows without becoming a full workflow screen.
 
 ### Basic Reminder Flow
@@ -140,7 +147,7 @@ Before a UI milestone is considered accepted, manually verify the relevant flow.
 * Mouse wheel over the pause button adjusts the pause duration between 1 and 120
   minutes before clicking pause.
 * Pause closes the popup.
-* During pause, the floating countdown panel shows remaining pause time.
+* During pause, the floating countdown panel says "暂停中" and shows remaining pause time.
 * After pause ends, reminders resume and the floating countdown panel shows the
   next reminder countdown.
 
@@ -158,6 +165,7 @@ Before a UI milestone is considered accepted, manually verify the relevant flow.
 * Choosing each tray pause duration updates the countdown panel to that chosen
   pause length, not the fixed configured default.
 * Tray menu item "恢复" clears pause and starts a fresh reminder countdown.
+* Tray menu item "开关悬浮窗" hides or shows the floating countdown panel.
 * Tray menu item "退出" terminates the app and removes the tray icon.
 
 ### Icon Check
@@ -186,10 +194,10 @@ Summary:
 
 ## Next Planned Feature
 
-The right-edge auto-hide floating countdown is implemented and pending manual acceptance.
+The draggable floating countdown and position-persistence update has been accepted.
 
 Possible next refinement after acceptance:
 
-* Tune the hidden tab width or reveal delay if the manual feel is too sensitive or too hard to trigger.
+* Tune the docking threshold, hidden tab width, or drag feel if manual acceptance shows the interaction is too sensitive or too hard to trigger.
 
 Do not start packaging or startup integration before tray behavior, icon behavior, and floating countdown behavior are stable.
