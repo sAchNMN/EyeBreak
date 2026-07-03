@@ -182,10 +182,14 @@ class ReminderTimer:
         self.state.floating_countdown_enabled = not self.state.floating_countdown_enabled
         if self.countdown_window:
             self.countdown_window.set_enabled(self.state.floating_countdown_enabled)
+        if self.tray_icon:
+            self.tray_icon.update_menu()
 
     def _toggle_autostart(self) -> None:
         enabled = not is_autostart_enabled()
         set_autostart(enabled)
+        if self.tray_icon:
+            self.tray_icon.update_menu()
 
     def _exit(self) -> None:
         self.state.is_running = False

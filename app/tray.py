@@ -50,6 +50,10 @@ class TrayIcon:
     def stop(self) -> None:
         self.icon.stop()
 
+    def update_menu(self) -> None:
+        """Force the menu to rebuild, re-evaluating all `checked` callbacks."""
+        self.icon.update_menu()
+
 
 def _pause_menu(on_pause: Callable[[int], None]) -> pystray.Menu:
     return pystray.Menu(
