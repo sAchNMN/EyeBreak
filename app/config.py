@@ -14,6 +14,7 @@ class AppConfig:
     reminder_interval_minutes: float = 25
     break_duration_seconds: int = 20
     pause_minutes: float = 60
+    idle_threshold_minutes: float = 5
 
 
 DEFAULT_CONFIG = AppConfig()
@@ -47,6 +48,10 @@ def load_config(path: Path = CONFIG_PATH) -> AppConfig:
             raw_config.get("pause_minutes"),
             DEFAULT_CONFIG.pause_minutes,
         ),
+        idle_threshold_minutes=_non_negative_number(
+            raw_config.get("idle_threshold_minutes"),
+            DEFAULT_CONFIG.idle_threshold_minutes,
+        ),
     )
 
 
@@ -55,6 +60,7 @@ def save_config(config: AppConfig, path: Path = CONFIG_PATH) -> None:
         "reminder_interval_minutes": config.reminder_interval_minutes,
         "break_duration_seconds": config.break_duration_seconds,
         "pause_minutes": config.pause_minutes,
+        "idle_threshold_minutes": config.idle_threshold_minutes,
     }
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
@@ -69,5 +75,19 @@ def _positive_number(value: Any, fallback: float) -> float:
         return fallback
 
     if parsed <= 0:
+        return fallback
+    return parsed
+
+
+def _non_negative_number(value: Any, fallback: float) -> float:
+    if isinstance(value, bool):
+        return fallback
+
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return fallback
+
+    if parsed < 0:
         return fallback
     return parsed

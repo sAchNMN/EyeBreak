@@ -16,7 +16,8 @@ Implemented:
 * Floating countdown auto-hides only when docked to a screen edge.
 * Floating countdown stays fully visible when it is not edge-docked.
 * Hidden floating countdown skips visible number redraws and refreshes immediately when revealed.
-* Floating countdown marks pause state with "暂停中".
+* Floating countdown marks pause state with "暂停中" and idle state with "已离开".
+* Idle detection (5 minutes by default) — when the user is away, reminders pause automatically and resume when they return.
 * System tray menu powered by `pystray`, including a floating-window toggle.
 * Autostart toggle in the tray menu, persistent through Windows registry (HKCU\...\Run).
 * Topmost reminder popup with break countdown.
@@ -30,11 +31,13 @@ Implemented:
   * 30 minutes;
   * 60 minutes;
   * 120 minutes.
-* JSON configuration for reminder interval, break duration, and pause duration.
+
+* JSON configuration for reminder interval, break duration, pause duration, and idle threshold.
 
 Pending manual acceptance:
 
 * Autostart toggle behavior.
+* Idle detection behavior.
 
 Not implemented yet:
 
@@ -101,7 +104,7 @@ Run automated tests:
 python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest
 ```
 
-Last known automated result: `40 passed` with the command above.
+Last known automated result: `44 passed` with the command above.
 
 ## Build
 
@@ -141,6 +144,7 @@ Before a UI milestone is considered accepted, manually verify the relevant flow.
 * The countdown text updates once per second while the panel is visible.
 * While the panel is hidden, the app keeps timing reminders but skips visible number redraws until reveal.
 * During pause, the panel title says "暂停中" and the remaining pause time is yellow.
+* When the user is idle (away from keyboard/mouse) for the `idle_threshold_minutes`, the panel title says "已离开" in gray.
 * After exiting and starting again, the floating panel returns to its last saved position.
 * After pause ends, reminders resume and the floating panel shows the next reminder countdown.
 * The tray menu item "开关悬浮窗" hides and shows the floating countdown without stopping reminders.
@@ -154,6 +158,12 @@ Before a UI milestone is considered accepted, manually verify the relevant flow.
 * Reminder popup closes automatically when countdown reaches zero.
 * Skip closes the popup and starts the next reminder interval.
 * Exit from the reminder popup terminates the app.
+
+### Idle Detection
+
+* When the user is away from the computer for `idle_threshold_minutes` (default 5), the floating countdown panel changes to "已离开" and reminders stop appearing.
+* When the user returns (moves the mouse or presses a key), the reminder interval restarts from the beginning.
+* Set `idle_threshold_minutes` to `0` in `config.json` to disable idle detection.
 
 ### Pause Flow
 
@@ -176,6 +186,7 @@ Before a UI milestone is considered accepted, manually verify the relevant flow.
   * 30 minutes;
   * 60 minutes;
   * 120 minutes.
+
 * Choosing each tray pause duration updates the countdown panel to that chosen
   pause length, not the fixed configured default.
 * Tray menu item "恢复" clears pause and starts a fresh reminder countdown.
@@ -210,11 +221,7 @@ Summary:
 
 ## Next Planned Feature
 
-The draggable floating countdown and position-persistence update has been accepted.
+Idle detection has been implemented. Next:
 
-Possible next refinement after acceptance:
-
-* Build a standalone `.exe` with PyInstaller so users can run EyeBreak without
-  installing Python.
 * Tune the docking threshold, hidden tab width, or drag feel if manual acceptance
   shows the interaction is too sensitive or too hard to trigger.

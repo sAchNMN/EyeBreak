@@ -9,12 +9,16 @@ class FakeFloatingCountdown:
         self.should_update = should_update
         self.enabled_values: list[bool] = []
         self.paused_values: list[bool] = []
+        self.idle_values: list[bool] = []
 
     def set_enabled(self, is_enabled: bool) -> None:
         self.enabled_values.append(is_enabled)
 
     def set_paused(self, is_paused: bool) -> None:
         self.paused_values.append(is_paused)
+
+    def set_idle(self, is_idle: bool) -> None:
+        self.idle_values.append(is_idle)
 
     def should_update_display(self) -> bool:
         return self.should_update
@@ -84,3 +88,18 @@ def test_visible_floating_countdown_refreshes_label_immediately() -> None:
 
     assert fake_window.paused_values == [False]
     assert fake_label.configure_calls == [{"text": "01:00", "fg": "#f9fafb"}]
+
+
+def test_idle_display_shows_dashes_and_gray_status() -> None:
+    state = AppState(next_reminder_at=70)
+    timer = ReminderTimer(AppConfig(idle_threshold_minutes=5), state)
+    timer._was_idle = True
+    fake_window = FakeFloatingCountdown(should_update=True)
+    fake_label = FakeLabel()
+    timer.countdown_window = fake_window  # type: ignore[assignment]
+    timer.status_label = fake_label  # type: ignore[assignment]
+
+    timer._update_countdown_display(now=10)
+
+    assert fake_window.idle_values == [True]
+    assert fake_label.configure_calls == [{"text": "--:--", "fg": "#9ca3af"}]

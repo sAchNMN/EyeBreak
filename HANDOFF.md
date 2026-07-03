@@ -572,3 +572,43 @@ Test commands and results:
 Manual acceptance status:
 
 * Immediate check mark update behavior has not been manually accepted yet.
+
+
+## Current Idle Detection Feature
+
+User requested that when the user is away from the computer, EyeBreak should stop reminding until the user returns.
+
+Changed files:
+
+* app/config.py
+* app/idle.py (new)
+* app/timer.py
+* app/floating_countdown.py
+* config.json
+* tests/test_config.py
+* tests/test_idle.py (new)
+* tests/test_timer.py
+* README.md
+* HANDOFF.md
+
+Current behavior:
+
+* config.json has a new idle_threshold_minutes field (default 5). Set to 0 to disable idle detection.
+* app/idle.py uses ctypes.windll.user32.GetLastInputInfo to detect seconds since last user input.
+* In ReminderTimer._tick(), when not paused and idle threshold > 0, if idle >= threshold the timer shows (translated) idle and suppresses reminders. When the user returns, next_reminder_at is reset so the reminder interval restarts from the beginning.
+* FloatingCountdownWindow.set_idle() shows idle status in gray (#9ca3af) and dashes countdown.
+
+Dependency decision:
+
+* No new package was added.
+* ctypes standard library wraps the Windows GetLastInputInfo API.
+
+Test commands and results:
+
+* python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest returned 44 passed in 0.49s.
+* 2 new tests in tests/test_idle.py (non-Windows fallback + real Windows call).
+* 1 new config test for idle_threshold_minutes = 0 (disabled).
+
+Manual acceptance status:
+
+* Idle detection behavior has not been manually accepted yet.

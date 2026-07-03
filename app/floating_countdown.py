@@ -187,6 +187,14 @@ class FloatingCountdownWindow:
             return
         self.status_label.configure(text="下次护眼提醒", fg="#a7f3d0")
 
+    def set_idle(self, is_idle: bool) -> None:
+        if not self.status_label:
+            return
+        if is_idle:
+            self.status_label.configure(text="已离开", fg="#9ca3af")
+            return
+        self.status_label.configure(text="下次护眼提醒", fg="#a7f3d0")
+
     def show(self, _event: tk.Event | None = None) -> None:
         if not self._is_enabled:
             return

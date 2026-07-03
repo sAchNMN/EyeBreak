@@ -19,7 +19,8 @@ def test_load_config_reads_custom_values(tmp_path: Path) -> None:
         {
           "reminder_interval_minutes": 0.1,
           "break_duration_seconds": 10,
-          "pause_minutes": 0.5
+          "pause_minutes": 0.5,
+          "idle_threshold_minutes": 3
         }
         """,
         encoding="utf-8",
@@ -31,6 +32,7 @@ def test_load_config_reads_custom_values(tmp_path: Path) -> None:
         reminder_interval_minutes=0.1,
         break_duration_seconds=10,
         pause_minutes=0.5,
+        idle_threshold_minutes=3,
     )
 
 
@@ -41,3 +43,22 @@ def test_load_config_uses_default_for_invalid_file(tmp_path: Path) -> None:
     config = load_config(config_path)
 
     assert config == DEFAULT_CONFIG
+
+
+def test_load_config_allows_zero_idle_threshold_for_disabled(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.json"
+    config_path.write_text(
+        """
+        {
+          "reminder_interval_minutes": 10,
+          "break_duration_seconds": 10,
+          "pause_minutes": 5,
+          "idle_threshold_minutes": 0
+        }
+        """,
+        encoding="utf-8",
+    )
+
+    config = load_config(config_path)
+
+    assert config.idle_threshold_minutes == 0
