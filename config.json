@@ -1,0 +1,5 @@
+{
+  "reminder_interval_minutes": 1,
+  "break_duration_seconds": 20,
+  "pause_minutes": 60
+}
