@@ -47,6 +47,7 @@ User-reported acceptance:
 - The user reported that the simple countdown status window acceptance had no
   issues.
 - The system tray behavior was accepted by the user.
+- The tray pause-duration submenu still needs manual UI acceptance.
 
 ## File Map
 
@@ -55,13 +56,15 @@ User-reported acceptance:
 - `app/config.py`: config dataclass, default config, JSON load/save, fallback
   handling for invalid values.
 - `app/state.py`: mutable runtime state shared by timer and UI callbacks,
-  including `paused_until` and `next_reminder_at`.
+  including `paused_until` and 
+ext_reminder_at`.
 - `app/timer.py`: Tkinter `after()` scheduling loop, topmost countdown status
   window, pause handling, tray callback routing, and reminder window launch.
 - `app/reminder_window.py`: Tkinter popup UI, countdown, skip/pause/exit
   callbacks, mouse-wheel pause-duration adjustment, and optional parent window
   support.
-- `app/tray.py`: `pystray` tray icon wrapper and generated Pillow icon image.
+- `app/tray.py`: `pystray` tray icon wrapper, generated Pillow icon image,
+  and pause-duration submenu options.
 - `tests/test_config.py`: config loader tests.
 - `tests/test_timer.py`: timer display formatting tests.
 - `tests/test_tray.py`: tray icon image generation test.
@@ -153,7 +156,7 @@ python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest
 
 Last known automated result:
 
-- `6 passed` after adding tray integration and tray icon image test.
+- `8 passed` after adding tray pause-duration submenu tests.
 
 Known environment note:
 
@@ -168,7 +171,10 @@ Before calling a UI change done, verify:
 - Countdown status window updates once per second.
 - Tray icon appears in the Windows system tray.
 - Tray menu item "立即休息" opens the reminder popup immediately.
-- Tray menu item "暂停" pauses using the configured `pause_minutes`.
+- Tray menu item "暂停" opens selectable durations: 5, 15, 30, 60, and
+  120 minutes.
+- Selecting a tray pause duration pauses for that chosen duration, not the fixed
+  configured default.
 - Tray menu item "恢复" clears pause and starts a fresh reminder countdown.
 - Tray menu item "退出" terminates the app and removes the tray icon.
 - Short interval reminder appears when the countdown reaches zero.
@@ -185,7 +191,7 @@ Before calling a UI change done, verify:
 
 Recommended next step:
 
-- Tray behavior has been manually accepted; next work should start from a new unaccepted milestone.
+- Manually validate tray pause-duration submenu behavior on Windows.
 - Planned user-requested feature: replace the simple countdown status window with
   an edge-docked auto-hide floating countdown display. It should stay mostly
   hidden at the screen edge and reveal itself when the mouse pointer touches or

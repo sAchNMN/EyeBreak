@@ -13,6 +13,7 @@ Implemented:
 - Skip, pause, resume, immediate break, and exit flows.
 - Mouse-wheel pause-duration adjustment on the reminder popup pause button.
 - System tray menu powered by `pystray`.
+- Tray pause menu with selectable pause durations: 5, 15, 30, 60, and 120 minutes.
 - JSON configuration for reminder interval, break duration, and pause duration.
 
 Manual acceptance status:
@@ -20,6 +21,7 @@ Manual acceptance status:
 - Initial reminder flow accepted by the user.
 - Countdown status window accepted by the user.
 - System tray behavior accepted by the user.
+- Tray pause-duration selection needs manual acceptance.
 
 ## Install
 
@@ -59,7 +61,7 @@ Restore normal values after testing:
 python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest
 ```
 
-Last known automated result: `6 passed`.
+Last known automated result: `8 passed`.
 
 ## Acceptance Checklist
 
@@ -68,7 +70,8 @@ For the current tray milestone, verify:
 
 - Tray icon appears in the Windows system tray.
 - `立即休息` opens the reminder popup immediately.
-- `暂停` pauses using the configured `pause_minutes`.
+- `暂停` opens duration choices: 5, 15, 30, 60, and 120 minutes.
+- Choosing each pause duration updates the countdown window to that pause length.
 - `恢复` clears pause and starts a fresh reminder countdown.
 - `退出` terminates the app and removes the tray icon.
 

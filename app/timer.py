@@ -2,6 +2,7 @@
 
 import time
 import tkinter as tk
+from collections.abc import Callable
 
 from app.config import AppConfig
 from app.reminder_window import ReminderWindow
@@ -58,7 +59,7 @@ class ReminderTimer:
     def _start_tray_icon(self) -> None:
         self.tray_icon = TrayIcon(
             on_break_now=lambda: self._run_on_ui_thread(self._break_now),
-            on_pause=lambda: self._run_on_ui_thread(self._pause_from_tray),
+            on_pause=lambda minutes: self._run_on_ui_thread(lambda: self._pause(minutes)),
             on_resume=lambda: self._run_on_ui_thread(self._resume),
             on_exit=lambda: self._run_on_ui_thread(self._exit),
         )
@@ -140,9 +141,6 @@ class ReminderTimer:
         self.state.next_reminder_at = (
             self.state.paused_until + self.config.reminder_interval_minutes * 60
         )
-
-    def _pause_from_tray(self) -> None:
-        self._pause(round(self.config.pause_minutes))
 
     def _resume(self) -> None:
         self.state.paused_until = 0.0

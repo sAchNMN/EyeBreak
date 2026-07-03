@@ -6,11 +6,14 @@ import pystray
 from PIL import Image, ImageDraw
 
 
+PAUSE_OPTIONS_MINUTES = (5, 15, 30, 60, 120)
+
+
 class TrayIcon:
     def __init__(
         self,
         on_break_now: Callable[[], None],
-        on_pause: Callable[[], None],
+        on_pause: Callable[[int], None],
         on_resume: Callable[[], None],
         on_exit: Callable[[], None],
     ) -> None:
@@ -20,7 +23,7 @@ class TrayIcon:
             "EyeBreak",
             pystray.Menu(
                 pystray.MenuItem("立即休息", lambda icon, item: on_break_now()),
-                pystray.MenuItem("暂停", lambda icon, item: on_pause()),
+                pystray.MenuItem("暂停", _pause_menu(on_pause)),
                 pystray.MenuItem("恢复", lambda icon, item: on_resume()),
                 pystray.MenuItem("退出", lambda icon, item: on_exit()),
             ),
@@ -31,6 +34,24 @@ class TrayIcon:
 
     def stop(self) -> None:
         self.icon.stop()
+
+
+def _pause_menu(on_pause: Callable[[int], None]) -> pystray.Menu:
+    return pystray.Menu(
+        *(
+            pystray.MenuItem(
+                _format_pause_label(minutes),
+                lambda icon, item, selected_minutes=minutes: on_pause(selected_minutes),
+            )
+            for minutes in PAUSE_OPTIONS_MINUTES
+        )
+    )
+
+
+def _format_pause_label(minutes: int) -> str:
+    if minutes >= 60 and minutes % 60 == 0:
+        return f"{minutes // 60}小时"
+    return f"{minutes}分钟"
 
 
 def _create_icon_image() -> Image.Image:
