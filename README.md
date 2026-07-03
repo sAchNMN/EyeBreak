@@ -21,7 +21,7 @@ Manual acceptance status:
 - Initial reminder flow accepted by the user.
 - Countdown status window accepted by the user.
 - System tray behavior accepted by the user.
-- Tray pause-duration selection needs manual acceptance.
+- Tray pause-duration selection accepted by the user.
 
 ## Install
 

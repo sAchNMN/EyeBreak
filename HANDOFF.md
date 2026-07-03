@@ -50,7 +50,7 @@ User-reported acceptance:
 - The user reported that the simple countdown status window acceptance had no
   issues.
 - The system tray behavior was accepted by the user.
-- The tray pause-duration submenu still needs manual UI acceptance.
+- The tray pause-duration submenu was accepted by the user; every pause duration was confirmed to take effect.
 
 ## File Map
 
@@ -59,8 +59,7 @@ User-reported acceptance:
 - `app/config.py`: config dataclass, default config, JSON load/save, fallback
   handling for invalid values.
 - `app/state.py`: mutable runtime state shared by timer and UI callbacks,
-  including `paused_until` and 
-ext_reminder_at`.
+  including `paused_until` and `next_reminder_at`.
 - `app/timer.py`: Tkinter `after()` scheduling loop, topmost countdown status
   window, pause handling, tray callback routing, and reminder window launch.
 - `app/reminder_window.py`: Tkinter popup UI, countdown, skip/pause/exit
@@ -195,7 +194,7 @@ Before calling a UI change done, verify:
 
 Recommended next step:
 
-- Manually validate tray pause-duration submenu behavior on Windows.
+- Tray pause-duration submenu has been manually accepted; next work should start from a new unaccepted milestone.
 - Planned user-requested feature: replace the simple countdown status window with
   an edge-docked auto-hide floating countdown display. It should stay mostly
   hidden at the screen edge and reveal itself when the mouse pointer touches or
