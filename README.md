@@ -38,7 +38,7 @@ Implemented:
 
 Pending manual acceptance:
 
-* Fullscreen detection behavior.
+* None at this point.
 
 Not implemented yet:
 
@@ -63,6 +63,7 @@ Manual acceptance status:
 * PyInstaller build output accepted by the user.
 * Tray check-mark immediate-refresh behavior accepted by the user.
 * Tray settings window behavior accepted by the user.
+* Fullscreen detection behavior accepted by the user.
 
 ## Install
 
@@ -249,6 +250,6 @@ Summary:
 
 ## Next Planned Feature
 
-Fullscreen detection has been implemented and is pending manual acceptance. Next:
+Fullscreen detection has been implemented and accepted. Next:
 
-* Tune fullscreen detection behavior if manual acceptance shows false positives or missed fullscreen apps.
+* Consider a lightweight release/version note for accepted desktop builds.

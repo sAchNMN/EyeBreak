@@ -45,7 +45,7 @@ The project deliberately avoids non-MVP scope for now:
   * idle detection behavior.
 * Pending manual acceptance:
 
-  * fullscreen detection behavior.
+  * none at this point.
 * Push rule:
 
   * do not push before explicit user acceptance, such as "验收没有问题".
@@ -785,9 +785,39 @@ Test commands and results:
 
 Manual acceptance status:
 
-* Fullscreen detection behavior is pending manual acceptance.
+* Fullscreen detection behavior has been accepted by the user.
 
 Known limitations / next work:
 
-* Encoding cleanup removed accidental BOM churn from Python files that do not use BOM and kept existing BOM on files that already used it.`r`n* Manual Windows acceptance still needs to verify common fullscreen targets such as video players, browsers, games, and PowerPoint slideshow.
-* Borderless fullscreen apps should work when their foreground window covers the monitor rectangle, but this still needs real app validation.
+* Encoding cleanup removed accidental BOM churn from Python files that do not use BOM and kept existing BOM on files that already used it.
+* Borderless fullscreen apps are handled when their foreground window covers the monitor rectangle; the current milestone has been manually accepted.
+
+## Current Fullscreen Detection Acceptance Update
+
+User acceptance:
+
+* User confirmed acceptance with: `验收没问题`.
+
+Changed files:
+
+* `README.md`
+* `HANDOFF.md`
+
+Current behavior:
+
+* No code behavior changed in this update.
+* Documentation now marks fullscreen detection behavior as accepted.
+* Pending manual acceptance is back to none at this point.
+
+Dependency decision:
+
+* No dependency changes.
+
+Test impact:
+
+* Tests were not rerun for this documentation-only acceptance update.
+* Last confirmed full test result remains `64 passed in 0.40s` with `python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest` after escalated rerun.
+
+Manual acceptance status:
+
+* No pending manual acceptance items are recorded at this point.
