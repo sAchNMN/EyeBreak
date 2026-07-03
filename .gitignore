@@ -14,6 +14,5 @@ app_state.json
 CLAUDE.md
 
 # PyInstaller build artifacts
-*.spec
 dist/
 build/
