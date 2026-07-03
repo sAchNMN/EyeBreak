@@ -30,27 +30,74 @@ The project deliberately avoids non-MVP scope for now:
 
 ## Current Status
 
-* Automated tests: `13 passed` with
+* Automated tests: `18 passed` with
   `python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest`.
 * Manual acceptance passed:
 
   * original reminder flow;
-  * simple countdown status window;
+  * earlier simple countdown status window before it was replaced;
   * system tray behavior;
   * tray pause-duration submenu;
   * generated app/tray/window/taskbar icon visual check on Windows.
-* Not implemented yet:
+* Pending manual acceptance:
 
-  * edge-docked auto-hide floating countdown display.
+  * right-edge docked auto-hide floating countdown display.
 * Push rule:
 
   * do not push before explicit user acceptance, such as "验收没有问题".
+
+## Current Change Pending Acceptance
+
+Floating countdown development started after the accepted icon milestone.
+
+Changed files:
+
+* `app/floating_countdown.py` added.
+* `app/timer.py` updated to use `FloatingCountdownWindow` for the countdown display.
+* `tests/test_floating_countdown.py` added.
+* `tests/test_timer.py` updated with a floating countdown wiring guard.
+* `README.md` updated for user-visible floating countdown behavior and acceptance checklist.
+* `HANDOFF.md` updated for this handoff.
+
+Current behavior:
+
+* The old fixed countdown status window has been replaced by a borderless,
+  right-edge docked floating panel.
+* On startup, the panel hides off the right edge and leaves a `10px` visible tab.
+* Mouse enter on the visible tab reveals the full `188x64` panel.
+* Mouse leave schedules a `700ms` delayed hide.
+* Before hiding, the panel checks whether the pointer is still inside the window;
+  this avoids hiding during parent/child widget transitions.
+* The existing timer state still drives the text:
+
+  * normal countdown uses white text;
+  * pause countdown uses yellow text;
+  * reminder triggering, pause, resume, skip, tray controls, and exit behavior are unchanged.
+
+Dependency decision:
+
+* No new package was added.
+* Tkinter geometry, event bindings, and `after()` are enough for this first
+  acceptance-oriented floating display.
+
+Test history for this change:
+
+* Ordinary run after the timer guard: `python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest`
+  returned `14 passed, 4 errors`; the errors were the known Windows sandbox
+  `.tmp\pytest` cleanup `PermissionError: [WinError 5]`, not assertion failures.
+* Escalated rerun of the same command passed after the pointer-inside hide guard:
+  `18 passed in 0.22s`.
+
+Known limitation:
+
+* The floating countdown has automated coverage for geometry helpers and timer
+  wiring, but reveal/hide feel still requires manual Windows UI acceptance.
 
 ## Current Baseline
 
 Implemented:
 
-* Small topmost countdown status window showing time until the next reminder.
+* Right-edge docked auto-hide floating countdown showing time until the next reminder.
 * Tkinter countdown reminder window.
 * Topmost centered reminder popup.
 * System tray icon using `pystray`.
@@ -67,17 +114,16 @@ Implemented:
 * Reminder popup pause duration defaults to `config.json`.
 * Reminder popup pause button can be adjusted with the mouse wheel from 1 to 120
   minutes in 5-minute steps.
-* During pause, the status window shows remaining pause time.
-* After pause ends, reminders resume and the status window shows the next
-  reminder countdown.
-* Exit from the reminder window, countdown status window, or tray menu.
+* During pause, the floating countdown panel shows remaining pause time.
+* After pause ends, reminders resume and the floating countdown panel shows the
+  next reminder countdown.
+* Exit from the reminder window, floating countdown panel, or tray menu.
 * Config tests for default creation, custom config loading, and invalid config
   fallback.
-* Timer display tests for `MM:SS` formatting.
+* Timer display and floating countdown wiring tests.
 * Custom generated EyeBreak icon stored at `assets/eyebreak.ico`.
 * Tray icon, Tkinter window icons, and Windows taskbar grouping share the
   generated EyeBreak icon path.
-* Tray icon image generation test.
 * Tray pause menu action callback arity fix:
 
   * `pystray.MenuItem` accepts at most two action parameters;
@@ -89,12 +135,16 @@ Implemented:
 Accepted by the user:
 
 * Initial MVP reminder flow had no issues after manual testing.
-* Simple countdown status window had no issues.
+* Earlier simple countdown status window had no issues.
 * System tray behavior had no issues.
 * Tray pause-duration submenu had no issues.
 * Every tray pause duration was confirmed to take effect.
 * Generated app/tray/window/taskbar icon behavior was confirmed to have no
   issues by the user.
+
+Not accepted yet:
+
+* Right-edge docked auto-hide floating countdown display.
 
 ## File Map
 
@@ -104,18 +154,23 @@ Accepted by the user:
   handling for invalid values.
 * `app/state.py`: mutable runtime state shared by timer and UI callbacks,
   including `paused_until` and `next_reminder_at`.
-* `app/timer.py`: Tkinter `after()` scheduling loop, topmost countdown status
-  window, pause handling, tray callback routing, Windows taskbar AppUserModelID
+* `app/timer.py`: Tkinter `after()` scheduling loop, floating countdown
+  integration, pause handling, tray callback routing, Windows taskbar AppUserModelID
   setup before root-window creation, and reminder window launch.
+* `app/floating_countdown.py`: right-edge docked auto-hide floating countdown
+  window, geometry helpers, reveal-on-enter, delayed hide-on-leave behavior, and
+  pointer-inside guard before hiding.
 * `app/reminder_window.py`: Tkinter popup UI, countdown, skip/pause/exit
   callbacks, mouse-wheel pause-duration adjustment, and optional parent window
   support.
 * `app/tray.py`: `pystray` tray icon wrapper, generated Pillow icon image, and
   pause-duration submenu options.
 * `tests/test_config.py`: config loader tests.
+* `tests/test_floating_countdown.py`: floating countdown geometry helper tests.
 * `tests/test_icons.py`: generated icon image, `.ico` file creation, and Windows
   AppUserModelID smoke tests.
-* `tests/test_timer.py`: timer display formatting tests.
+* `tests/test_timer.py`: timer display formatting and floating countdown wiring
+  tests.
 * `tests/test_tray.py`: tray icon image generation, pause label, pause option,
   and pause submenu callback tests.
 * `requirements.txt`: runtime dependencies for tray support.
@@ -126,63 +181,6 @@ Accepted by the user:
 * `AGENTS.md`: project-level AI agent coding rules.
 * `.gitignore`: excludes Python cache/test temp files and local tool artifacts such
   as `.mimocode/` and `mimo.exe`.
-
-## README And Release Discipline
-
-Follow `AGENTS.md` as the source of truth for README, commit, test, and push
-rules.
-
-Current release rule summary:
-
-* Update `README.md` before milestone acceptance when user-visible behavior,
-  install commands, run commands, test commands, dependencies, or acceptance
-  status changes.
-* Commit only after relevant tests pass and `HANDOFF.md` / `README.md` are
-  updated when required.
-* Inspect `git status` before committing.
-* Exclude unrelated, temporary, local IDE, cache, or scratch files from commits.
-* `mimo.exe` is larger than GitHub ordinary file limits and must stay local unless
-  Git LFS or another release-asset flow is intentionally introduced.
-* Do not claim tests passed unless they were actually run in the current
-  environment.
-* Report exact test commands and results when reporting completion.
-* Do not push before explicit user acceptance, such as "验收没有问题".
-* Push only the accepted milestone to GitHub.
-
-## Agent Coding Rules Summary
-
-`AGENTS.md` is the source of truth for future AI coding agents.
-
-Important summary:
-
-* Keep scope surgical.
-* Default to no new dependency.
-* Consider existing standard-library, Tkinter, project-code, or mature package
-  solutions before hand-writing fragile platform integration.
-* Add or prefer an external dependency only when it clearly reduces
-  implementation risk, complexity, or platform-specific behavior without
-  expanding scope.
-* Record dependency decisions in `HANDOFF.md`.
-* Report exact test commands and results.
-* Do not push before explicit user acceptance.
-* Do not modify `AGENTS.md` unless the user explicitly asks for project
-  instruction changes.
-
-## Dependency Decisions
-
-* Countdown status window:
-
-  * no external package was added;
-  * Tkinter's standard `after()` scheduling and labels directly satisfy the
-    simple acceptance-oriented countdown display.
-
-* System tray:
-
-  * `pystray==0.19.5` was added;
-  * tray icons and menus are platform integration that should not be hand-written
-    against Windows APIs for this MVP;
-  * Pillow is also listed because `pystray` uses Pillow images and the app
-    generates its tray icon at runtime.
 
 ## Run
 
@@ -228,81 +226,33 @@ python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest
 
 Last known automated result:
 
-* First current run failed with `9 passed, 4 errors` because `.tmp` did not
-  exist.
-* Second current run failed during pytest temporary-directory cleanup with
-  `PermissionError: [WinError 5] 拒绝访问。: 'G:\桌面\EyeBreak\.tmp\pytest'`.
-* Escalated rerun passed with `13 passed` after Windows taskbar AppUserModelID
-  tests and the existing tray pause submenu callback arity coverage.
-
-Known environment note:
-
-* Use `--basetemp=.tmp\pytest` to avoid temp/cache write issues in restricted
-  environments.
+* Escalated run passed: `18 passed in 0.22s`.
+* Ordinary-permission run can fail during `.tmp\pytest` cleanup with
+  `PermissionError: [WinError 5]` in this Windows sandbox.
 
 ## Manual Acceptance Checklist
 
-Before calling a UI change done, verify:
+Before calling the floating countdown done, verify:
 
-* Countdown status window appears on startup.
-* Countdown status window updates once per second.
-* Tray icon appears in the Windows system tray.
-* Countdown status window shows the EyeBreak title-bar icon.
-* Reminder popup shows the EyeBreak title-bar icon.
-* Tray menu item "立即休息" opens the reminder popup immediately.
-* Tray menu item "暂停" opens selectable durations:
-
-  * 5 minutes;
-  * 15 minutes;
-  * 30 minutes;
-  * 60 minutes;
-  * 120 minutes.
-* Selecting a tray pause duration pauses for that chosen duration, not the fixed
-  configured default.
-* Tray menu item "恢复" clears pause and starts a fresh reminder countdown.
-* Tray menu item "退出" terminates the app and removes the tray icon.
-* Short interval reminder appears when the countdown reaches zero.
-* Reminder popup countdown decreases once per second.
-* Reminder popup closes automatically when countdown reaches zero.
-* Skip closes the popup and starts the next reminder interval.
-* Mouse wheel over the pause button adjusts the pause duration between 1 and 120
-  minutes before clicking pause.
-* Pause closes the popup and the status window shows remaining pause time.
-* After pause ends, reminders resume and the status window shows the next
-  reminder countdown.
-* Exit from the reminder popup or status window terminates the process.
+* On startup, only a narrow tab is visible on the right edge of the screen.
+* Moving the mouse pointer onto the tab reveals the countdown panel.
+* Moving the mouse pointer away hides the panel again after a short delay.
+* The countdown panel shows time until the next reminder.
+* The countdown text updates once per second.
+* During pause, the countdown panel shows remaining pause time in yellow.
+* After pause ends, reminders resume and the floating panel shows the next reminder countdown.
+* Tray pause/resume/immediate-break/exit flows still work.
+* Reminder popup still opens when the countdown reaches zero.
 
 ## Known Pending Work
 
 Pending manual validation:
 
-* None for the accepted icon milestone.
+* Right-edge auto-hide floating countdown display.
 
-Planned user-requested feature:
+Possible next refinement after acceptance:
 
-* Replace the simple countdown status window with an edge-docked auto-hide
-  floating countdown display.
+* Tune the hidden tab width or reveal delay if the manual feel is too sensitive or too hard to trigger.
 
-This floating countdown feature is not implemented yet.
-
-Do not start packaging or startup integration before tray behavior and icon
-behavior are stable.
-
-## Floating Countdown Design Notes
-
-The planned floating countdown should:
-
-* show time until the next reminder, not only the 20-second break countdown;
-* stay edge-docked and mostly hidden by default;
-* leave only a small tab or handle visible while hidden;
-* reveal itself when the mouse pointer touches or hovers over the hidden tab;
-* auto-hide again after the pointer leaves or after a short delay;
-* avoid stealing focus while the user works;
-* support at least one predictable edge position before adding multi-edge
-  customization.
-
-Implementation note:
-
-* Implementing this cleanly likely requires exposing timer state.
-* Timer state is now partly available through `AppState.next_reminder_at` and
-  `AppState.paused_until`.
+Do not start packaging or startup integration before tray behavior, icon
+behavior, and floating countdown behavior are stable.

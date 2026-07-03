@@ -4,18 +4,19 @@ EyeBreak is a small Windows eye-break reminder built with Python, Tkinter, and
 `pystray`.
 
 It reminds the user to look far away after a configurable interval, shows a
-countdown status window, and provides tray-menu controls for common actions.
+right-edge auto-hide floating countdown, and provides tray-menu controls for
+common actions.
 
 ## Current Status
 
 Implemented:
 
-* Countdown status window showing time until the next reminder.
+* Right-edge docked auto-hide floating countdown showing time until the next reminder.
 * Topmost reminder popup with break countdown.
 * Skip, pause, resume, immediate break, and exit flows.
 * Mouse-wheel pause-duration adjustment on the reminder popup pause button.
 * System tray menu powered by `pystray`.
-* Custom EyeBreak icon used by the tray, Tkinter windows, and Windows taskbar grouping.
+* Custom EyeBreak icon used by the tray, Tkinter reminder window, and Windows taskbar grouping.
 * Tray pause menu with selectable pause durations:
 
   * 5 minutes;
@@ -29,9 +30,12 @@ Implemented:
   * break duration;
   * pause duration.
 
+Pending manual acceptance:
+
+* Right-edge docked auto-hide floating countdown display.
+
 Not implemented yet:
 
-* Edge-docked auto-hide floating countdown display.
 * Packaging.
 * Startup integration.
 * Accounts.
@@ -44,11 +48,12 @@ Not implemented yet:
 Manual acceptance status:
 
 * Initial reminder flow accepted by the user.
-* Countdown status window accepted by the user.
+* Earlier countdown status window accepted by the user before it was replaced by the floating countdown.
 * System tray behavior accepted by the user.
 * Tray pause-duration selection accepted by the user.
 * Program icon implementation accepted by the user, including tray, window,
   and Windows taskbar icon behavior.
+* Floating countdown display is implemented but not yet accepted by the user.
 
 ## Install
 
@@ -96,16 +101,29 @@ Run automated tests:
 python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest
 ```
 
-Last known automated result: `13 passed` with the command above.
+Last known automated result: `18 passed` with the command above.
 
 Environment note:
 
 * Use `--basetemp=.tmp\pytest` to avoid temp/cache write issues in restricted
   environments.
+* In this Windows sandbox, ordinary-permission pytest may fail while cleaning
+  `.tmp\pytest` with `PermissionError: [WinError 5]`; the escalated rerun passed.
 
 ## Acceptance Checklist
 
 Before a UI milestone is considered accepted, manually verify the relevant flow.
+
+### Floating Countdown
+
+* On startup, only a narrow tab is visible on the right edge of the screen.
+* Moving the mouse pointer onto the tab reveals the countdown panel.
+* Moving the mouse pointer away hides the panel again after a short delay.
+* The countdown panel shows time until the next reminder.
+* The countdown text updates once per second.
+* During pause, the countdown panel shows remaining pause time in yellow.
+* After pause ends, reminders resume and the floating panel shows the next reminder countdown.
+* The floating panel stays above normal windows without becoming a full workflow screen.
 
 ### Basic Reminder Flow
 
@@ -116,23 +134,15 @@ Before a UI milestone is considered accepted, manually verify the relevant flow.
 * Skip closes the popup and starts the next reminder interval.
 * Exit from the reminder popup terminates the app.
 
-### Countdown Status Window
-
-* Countdown status window appears on startup.
-* Countdown status window shows time until the next reminder.
-* Countdown status window updates once per second.
-* Countdown status window stays visible above normal windows.
-* Exit from the countdown status window terminates the app.
-
 ### Pause Flow
 
 * Reminder popup pause button uses the default pause duration from `config.json`.
 * Mouse wheel over the pause button adjusts the pause duration between 1 and 120
   minutes before clicking pause.
 * Pause closes the popup.
-* During pause, the countdown status window shows remaining pause time.
-* After pause ends, reminders resume and the status window shows the next
-  reminder countdown.
+* During pause, the floating countdown panel shows remaining pause time.
+* After pause ends, reminders resume and the floating countdown panel shows the
+  next reminder countdown.
 
 ### Tray Flow
 
@@ -145,7 +155,7 @@ Before a UI milestone is considered accepted, manually verify the relevant flow.
   * 30 minutes;
   * 60 minutes;
   * 120 minutes.
-* Choosing each tray pause duration updates the countdown window to that chosen
+* Choosing each tray pause duration updates the countdown panel to that chosen
   pause length, not the fixed configured default.
 * Tray menu item "恢复" clears pause and starts a fresh reminder countdown.
 * Tray menu item "退出" terminates the app and removes the tray icon.
@@ -153,9 +163,8 @@ Before a UI milestone is considered accepted, manually verify the relevant flow.
 ### Icon Check
 
 * Tray icon appears correctly in the Windows system tray.
-* Countdown status window shows the EyeBreak icon in the title bar.
 * Reminder popup shows the EyeBreak icon in the title bar.
-* Windows taskbar shows the EyeBreak icon instead of the default Python icon.
+* Windows taskbar shows the EyeBreak icon instead of the default Python icon when the app is represented there.
 * Icon appearance is visually acceptable on Windows.
 
 ## Release Discipline
@@ -177,23 +186,10 @@ Summary:
 
 ## Next Planned Feature
 
-Planned user-requested feature:
+The right-edge auto-hide floating countdown is implemented and pending manual acceptance.
 
-* Replace the simple countdown status window with an edge-docked auto-hide
-  floating countdown display.
+Possible next refinement after acceptance:
 
-This feature is not implemented yet.
+* Tune the hidden tab width or reveal delay if the manual feel is too sensitive or too hard to trigger.
 
-Expected behavior:
-
-* Show time until the next reminder.
-* Stay mostly hidden at the screen edge by default.
-* Leave only a small visible tab or handle while hidden.
-* Reveal when the mouse pointer touches or hovers over the hidden tab.
-* Auto-hide after the pointer leaves or after a short delay.
-* Avoid stealing focus while the user works.
-* Start with one predictable edge position before adding multi-edge
-  customization.
-
-Do not start packaging or startup integration before tray behavior and icon
-behavior are stable.
+Do not start packaging or startup integration before tray behavior, icon behavior, and floating countdown behavior are stable.

@@ -5,6 +5,7 @@ import tkinter as tk
 from collections.abc import Callable
 
 from app.config import AppConfig
+from app.floating_countdown import FloatingCountdownWindow
 from app.icons import apply_window_icon, ensure_icon_file, set_windows_app_user_model_id
 from app.reminder_window import ReminderWindow
 from app.state import AppState
@@ -17,6 +18,7 @@ class ReminderTimer:
         self.state = state
         self.root: tk.Tk | None = None
         self.status_label: tk.Label | None = None
+        self.countdown_window: FloatingCountdownWindow | None = None
         self.tray_icon: TrayIcon | None = None
         self.is_showing_reminder = False
 
@@ -34,31 +36,9 @@ class ReminderTimer:
         if not self.root:
             return
 
-        self.root.title("EyeBreak")
         apply_window_icon(self.root)
-        self.root.geometry("220x76+20+20")
-        self.root.resizable(False, False)
-        self.root.configure(bg="#111827")
-        self.root.attributes("-topmost", True)
-        self.root.protocol("WM_DELETE_WINDOW", self._exit)
-
-        title = tk.Label(
-            self.root,
-            text="下次护眼提醒",
-            font=("Microsoft YaHei UI", 10),
-            bg="#111827",
-            fg="#d1d5db",
-        )
-        title.pack(pady=(8, 0))
-
-        self.status_label = tk.Label(
-            self.root,
-            text="--:--",
-            font=("Microsoft YaHei UI", 24, "bold"),
-            bg="#111827",
-            fg="#f9fafb",
-        )
-        self.status_label.pack(pady=(0, 8))
+        self.countdown_window = FloatingCountdownWindow(self.root)
+        self.status_label = self.countdown_window.build(self._exit)
 
     def _start_tray_icon(self) -> None:
         self.tray_icon = TrayIcon(
