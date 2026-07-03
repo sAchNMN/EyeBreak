@@ -1,0 +1,109 @@
+﻿from __future__ import annotations
+
+import tkinter as tk
+from pathlib import Path
+
+from PIL import Image, ImageDraw, ImageFilter
+
+
+ICON_PATH = Path("assets") / "eyebreak.ico"
+
+
+def ensure_icon_file(path: Path = ICON_PATH) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not path.exists():
+        create_icon_image(256).save(
+            path,
+            format="ICO",
+            sizes=[
+                (16, 16),
+                (24, 24),
+                (32, 32),
+                (48, 48),
+                (64, 64),
+                (128, 128),
+                (256, 256),
+            ],
+        )
+    return path
+
+
+def create_icon_image(size: int = 64) -> Image.Image:
+    image = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(image)
+
+    radius = round(size * 0.22)
+    draw.rounded_rectangle(
+        (0, 0, size - 1, size - 1),
+        radius=radius,
+        fill=(15, 23, 42, 255),
+    )
+
+    glow = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    glow_draw = ImageDraw.Draw(glow)
+    glow_draw.ellipse(
+        (size * 0.08, size * 0.04, size * 0.92, size * 0.88),
+        fill=(45, 212, 191, 80),
+    )
+    image.alpha_composite(glow.filter(ImageFilter.GaussianBlur(size * 0.08)))
+
+    draw = ImageDraw.Draw(image)
+    eye_box = (
+        round(size * 0.15),
+        round(size * 0.26),
+        round(size * 0.85),
+        round(size * 0.68),
+    )
+    draw.ellipse(eye_box, fill=(241, 245, 249, 255))
+
+    iris_box = (
+        round(size * 0.35),
+        round(size * 0.31),
+        round(size * 0.65),
+        round(size * 0.61),
+    )
+    draw.ellipse(iris_box, fill=(20, 184, 166, 255))
+
+    pupil_box = (
+        round(size * 0.44),
+        round(size * 0.40),
+        round(size * 0.56),
+        round(size * 0.52),
+    )
+    draw.ellipse(pupil_box, fill=(15, 23, 42, 255))
+
+    highlight_box = (
+        round(size * 0.39),
+        round(size * 0.34),
+        round(size * 0.47),
+        round(size * 0.42),
+    )
+    draw.ellipse(highlight_box, fill=(255, 255, 255, 230))
+
+    horizon_y = round(size * 0.78)
+    draw.line(
+        (round(size * 0.22), horizon_y, round(size * 0.78), horizon_y),
+        fill=(45, 212, 191, 255),
+        width=max(2, round(size * 0.04)),
+    )
+    draw.arc(
+        (
+            round(size * 0.32),
+            round(size * 0.62),
+            round(size * 0.68),
+            round(size * 0.94),
+        ),
+        start=200,
+        end=340,
+        fill=(45, 212, 191, 230),
+        width=max(1, round(size * 0.025)),
+    )
+
+    return image
+
+
+def apply_window_icon(window: tk.Tk | tk.Toplevel) -> None:
+    try:
+        window.iconbitmap(default=str(ensure_icon_file()))
+    except tk.TclError:
+        return

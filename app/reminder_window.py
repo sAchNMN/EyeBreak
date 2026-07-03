@@ -3,6 +3,8 @@
 import tkinter as tk
 from collections.abc import Callable
 
+from app.icons import apply_window_icon
+
 
 class ReminderWindow:
     MIN_PAUSE_MINUTES = 1
@@ -37,6 +39,7 @@ class ReminderWindow:
 
     def _build_window(self) -> None:
         self.root.title("EyeBreak")
+        apply_window_icon(self.root)
         self.root.geometry("460x280")
         self.root.resizable(False, False)
         self.root.configure(bg="#f5f7fb")

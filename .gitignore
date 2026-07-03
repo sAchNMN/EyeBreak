@@ -1,0 +1,9 @@
+﻿# Python cache and test temp
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.tmp/
+
+# Local tools and scratch state
+.mimocode/
+mimo.exe

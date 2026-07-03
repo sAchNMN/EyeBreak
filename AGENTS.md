@@ -2,72 +2,92 @@
 
 Project-level instructions for AI coding agents working on EyeBreak.
 
-## Dependency-First Implementation Rule
-
-When implementing a feature, first check whether a mature, maintained package,
-plugin, or standard-library module can directly provide the needed capability.
-Prefer using that existing implementation over writing the feature from scratch.
-
-This rule applies especially to platform integration and behavior that is easy to
-get subtly wrong, such as:
-
-- system tray icons and menus;
-- Windows startup integration;
-- global hotkeys;
-- idle-time or input detection;
-- fullscreen/window detection;
-- packaging and installer behavior;
-- scheduling and background task behavior.
-
-Before choosing a dependency, verify these points:
-
-- It actually solves the current requirement without adding unrelated product
-  scope.
-- It is compatible with the current Python/Tkinter Windows direction.
-- It is reasonably maintained and documented.
-- Its dependency cost is justified by the complexity it removes.
-- It does not force a broad rewrite of the MVP.
-
-Do not use a dependency merely because it exists. If the requirement is small,
-well-contained, and safer with the Python standard library or existing project
-code, keep the implementation local.
-
-Record the decision in `HANDOFF.md` whenever code or project behavior changes:
-
-- which package/plugin/module was chosen or rejected;
-- why it was chosen or rejected;
-- any install, run, or test impact.
-
 ## Scope Discipline
 
 Keep changes surgical. Implement only the requested feature and the minimum
-supporting code required for it. Do not add accounts, cloud sync, analytics,
-reports, AI advice, packaging, startup integration, or tray behavior unless the
-current task explicitly asks for it.
+supporting code required for it.
+
+Do not add accounts, cloud sync, analytics, reports, AI advice, packaging,
+startup integration, tray behavior, or other new product scope unless the current
+task explicitly asks for it.
+
+## Dependency Discipline
+
+The dependency rule does not authorize adding new product scope. It applies only
+after the requested feature is explicitly in scope.
+
+When implementing a feature, first check whether the Python standard library,
+existing project code, Tkinter, or a mature maintained package can directly
+provide the needed capability.
+
+Default to no new dependency. Add or prefer an external dependency only when it
+clearly reduces implementation risk, complexity, or platform-specific behavior
+without expanding scope or forcing a broad MVP rewrite.
+
+When dependency decisions are made, record added, removed, upgraded, or rejected
+packages/modules in `HANDOFF.md`, including the reason and any install/run/test
+impact.
 
 ## Handoff Requirement
 
-After every code write or code modification, update `HANDOFF.md` in the same
-turn so a new developer can quickly understand the current state, changed files,
-run/test commands, and next work.
-## README, Commit, and Push Discipline
+After every task that makes a meaningful code, behavior, dependency, command, or
+test change, update `HANDOFF.md` before reporting the task complete.
 
-At every key development milestone, update `README.md` before asking for user
-acceptance. The README must reflect current behavior, install/run/test commands,
-and the manual acceptance status for the milestone.
+`HANDOFF.md` must summarize:
 
-Local commits are allowed at development milestones after `README.md` and
-`HANDOFF.md` are updated and the relevant tests pass. Do not push before user
-acceptance. A milestone may be pushed only after the user explicitly says the
+- changed files;
+- current behavior;
+- dependency decisions;
+- install/run/test impact;
+- exact test commands run and results;
+- known failures, limitations, or next work.
+
+## README and Acceptance
+
+Before asking for user acceptance on a milestone, update `README.md` if the
+milestone changes user-visible behavior, install commands, run commands, test
+commands, dependencies, or manual acceptance status.
+
+Do not mark manual acceptance as passed unless the user explicitly confirms that
 acceptance has no issues, such as "验收没有问题".
 
-When committing a milestone:
+A request to commit is not acceptance. A request to continue development is not
+acceptance.
 
-- include the relevant code changes;
-- include `README.md` and `HANDOFF.md` updates;
-- run the relevant tests first.
+## Testing and Reporting
 
-When pushing a milestone:
+Do not claim tests passed unless they were actually run in the current
+environment.
 
-- confirm the user explicitly said acceptance has no issues;
-- push only the accepted milestone to GitHub.
+When reporting completion, state the exact test commands that were run and their
+results. If only partial tests were run, say so explicitly.
+
+If relevant tests fail or the app cannot run, fix or document that failure before
+starting unrelated new work.
+
+## Commit Discipline
+
+Local commits are allowed only after:
+
+- relevant tests pass, unless the user explicitly asks for a WIP commit;
+- `README.md` is updated when required;
+- `HANDOFF.md` is updated when required;
+- `git status` has been inspected;
+- unrelated, temporary, local IDE, cache, or scratch files are excluded.
+
+If committing with failing tests because the user explicitly requested a WIP
+commit, document the failure in `HANDOFF.md`.
+
+## Push Discipline
+
+Do not push before user acceptance.
+
+Push only after the user explicitly confirms that manual acceptance has no
+issues, such as "验收没有问题".
+
+Push only the accepted milestone to GitHub.
+
+## Protected Instructions
+
+Do not modify `AGENTS.md` unless the user explicitly asks for project instruction
+changes.

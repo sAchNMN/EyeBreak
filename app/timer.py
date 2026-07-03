@@ -5,6 +5,7 @@ import tkinter as tk
 from collections.abc import Callable
 
 from app.config import AppConfig
+from app.icons import apply_window_icon, ensure_icon_file
 from app.reminder_window import ReminderWindow
 from app.state import AppState
 from app.tray import TrayIcon
@@ -20,6 +21,7 @@ class ReminderTimer:
         self.is_showing_reminder = False
 
     def run(self) -> None:
+        ensure_icon_file()
         self.root = tk.Tk()
         self._build_countdown_window()
         self._schedule_next_reminder()
@@ -32,6 +34,7 @@ class ReminderTimer:
             return
 
         self.root.title("EyeBreak")
+        apply_window_icon(self.root)
         self.root.geometry("220x76+20+20")
         self.root.resizable(False, False)
         self.root.configure(bg="#111827")
