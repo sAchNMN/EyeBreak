@@ -519,3 +519,56 @@ Dependency decision:
 Manual acceptance status:
 
 * PyInstaller build has not been verified or accepted yet.
+
+## Current Tray Menu Check Mark Fix
+
+User reported that tray menu items "开关悬浮窗" and "开机自启" showed no on/off state.
+
+Changed files:
+
+* `app/tray.py`
+* `app/timer.py`
+* `HANDOFF.md`
+
+Current behavior:
+
+* "开关悬浮窗" now has `checked=lambda item: get_is_floating_enabled()` which reads `state.floating_countdown_enabled`.
+* "开机自启" now has `checked=lambda item: get_is_autostart_enabled()` which calls `is_autostart_enabled()`.
+* Both items show a check mark when enabled, no check mark when disabled.
+
+Dependency decision:
+
+* No new package was added.
+
+Test commands and results:
+
+* `python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest` returned `40 passed in 0.27s`.
+
+Manual acceptance status:
+
+* Tray menu check mark behavior has not been manually accepted yet.
+
+## Current Tray Menu Immediate Check Mark Fix
+
+User reported that clicking "开机自启" did not show the check mark ✓ immediately; the menu had to be opened a second time.
+
+Root cause: pystray evaluates `checked` callbacks only when the menu opens, not after an action completes.
+
+Fix:
+
+* Added `TrayIcon.update_menu()` which calls `pystray.Icon.update_menu()` to force rebuild.
+* `_toggle_autostart()` and `_toggle_floating_countdown()` in `timer.py` now call `self.tray_icon.update_menu()` after the state change.
+
+Changed files:
+
+* `app/tray.py` — added `update_menu()` method
+* `app/timer.py` — call `update_menu()` after each toggle
+* `HANDOFF.md`
+
+Test commands and results:
+
+* `python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest` returned `40 passed in 0.33s`.
+
+Manual acceptance status:
+
+* Immediate check mark update behavior has not been manually accepted yet.
