@@ -1059,3 +1059,37 @@ Test impact:
 Manual acceptance status:
 
 * `v1` release record has been accepted by the user.
+
+## 2026-07-04 Repository Hygiene Cleanup
+
+Changed files:
+
+- Removed `config.json` from Git tracking while keeping it as local runtime state.
+- Removed `github仓库地址.md`; it only duplicated the remote URL.
+- Removed `MVP软件开发.md`; it was an outdated roadmap already superseded by `README.md` and `RELEASES.md`.
+- Updated `.gitignore` to ignore local config, runtime state, logs, virtualenvs, coverage output, tool scratch files, and PyInstaller build outputs.
+- Updated `README.md` to state that `config.json` is generated on first run and intentionally ignored by Git.
+
+Current behavior:
+
+- First run still creates or repairs `config.json` through the existing config loader.
+- The repository now keeps source code, tests, dependencies, app icon, PyInstaller build recipe, release notes, and AI handoff docs.
+- Local runtime config remains on the developer machine and is not part of Git commits.
+
+Dependency decisions:
+
+- No dependency added, removed, or upgraded.
+- External reference check used GitHub Python `.gitignore` and PyPA project-structure guidance; `build.spec` is intentionally kept because it is this app's accepted PyInstaller build recipe.
+
+Install/run/test impact:
+
+- Fresh clones will not include `config.json`; running `python main.py` creates local config state.
+- Build command remains `python -m PyInstaller build.spec`.
+- First test run: `python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest` returned `62 passed, 11 errors`; all errors were Windows sandbox cleanup failures for `.tmp\pytest`.
+- Escalated rerun of the same command passed: `73 passed in 0.40s`.
+
+Known failures or limitations:
+
+- Direct `Remove-Item` deletion was blocked by Windows permission handling in the sandbox, so tracked docs were removed with `git rm` instead.
+- Ordinary-permission pytest can still fail while cleaning `.tmp\pytest`; escalated pytest passed with no assertion failures.
+- The local `config.json` file remains in the working tree as ignored runtime state.

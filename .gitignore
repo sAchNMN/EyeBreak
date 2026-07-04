@@ -4,10 +4,21 @@ __pycache__/
 .pytest_cache/
 .tmp/
 
+# Virtual environments and coverage
+.venv/
+venv/
+env/
+.coverage
+htmlcov/
+
+# Local runtime state
+config.json
+app_state.json
+*.log
+
 # Local tools and scratch state
 .mimocode/
 mimo.exe
-app_state.json
 
 # Local AI tool artifacts
 .reasonix/

@@ -85,6 +85,8 @@ Run the app:
 python main.py
 ```
 
+On first run, EyeBreak creates `config.json` beside the app. This file is local runtime state and is intentionally ignored by Git.
+
 For faster acceptance testing, temporarily set `config.json` to short intervals:
 
 ```json
@@ -113,7 +115,7 @@ Run automated tests:
 python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest
 ```
 
-Last known automated result: `64 passed` with the command above after escalated rerun.
+Last known automated result: `73 passed in 0.40s` with the command above after escalated rerun.
 
 ## Build
 
