@@ -1,6 +1,10 @@
 ﻿import json
 
-from app.state import AppState, load_app_state, save_app_state
+from app.state import APP_STATE_PATH, AppState, load_app_state, save_app_state
+
+
+def test_default_app_state_path_is_absolute() -> None:
+    assert APP_STATE_PATH.is_absolute()
 
 
 def test_load_app_state_reads_floating_countdown_position(tmp_path) -> None:
@@ -52,3 +56,12 @@ def test_save_app_state_writes_only_persistent_ui_state(tmp_path) -> None:
             "y": 900,
         }
     }
+
+
+def test_save_app_state_ignores_write_failure(monkeypatch) -> None:
+    def raise_permission_error(self, data, encoding=None):
+        raise PermissionError
+
+    monkeypatch.setattr("pathlib.Path.write_text", raise_permission_error)
+
+    save_app_state(AppState())

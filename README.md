@@ -125,8 +125,9 @@ python -m PyInstaller build.spec
 The output is `dist/EyeBreak.exe`. Copy the entire `dist/` folder to another
 machine; no Python installation is needed.
 
-> **Note:** `config.json` and `app_state.json` are read from the same directory
-> as `EyeBreak.exe`. Place them alongside the executable.
+> **Note:** `config.json` and `app_state.json` are read from the app folder, not
+> from the current working directory. In packaged builds, place them alongside
+> `EyeBreak.exe`.
 
 Environment note:
 

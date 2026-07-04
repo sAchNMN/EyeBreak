@@ -6,27 +6,32 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFilter, ImageTk
 
+from app.paths import runtime_file_path
 
-ICON_PATH = Path("assets") / "eyebreak.ico"
+
+ICON_PATH = runtime_file_path("assets/eyebreak.ico")
 APP_USER_MODEL_ID = "EyeBreak.Desktop.Reminder"
 
 
 def ensure_icon_file(path: Path = ICON_PATH) -> Path:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if not path.exists():
-        create_icon_image(256).save(
-            path,
-            format="ICO",
-            sizes=[
-                (16, 16),
-                (24, 24),
-                (32, 32),
-                (48, 48),
-                (64, 64),
-                (128, 128),
-                (256, 256),
-            ],
-        )
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if not path.exists():
+            create_icon_image(256).save(
+                path,
+                format="ICO",
+                sizes=[
+                    (16, 16),
+                    (24, 24),
+                    (32, 32),
+                    (48, 48),
+                    (64, 64),
+                    (128, 128),
+                    (256, 256),
+                ],
+            )
+    except OSError:
+        return path
     return path
 
 

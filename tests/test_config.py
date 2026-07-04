@@ -1,6 +1,10 @@
 from pathlib import Path
 
-from app.config import DEFAULT_CONFIG, AppConfig, load_config, save_config
+from app.config import CONFIG_PATH, DEFAULT_CONFIG, AppConfig, load_config, save_config
+
+
+def test_default_config_path_is_absolute() -> None:
+    assert CONFIG_PATH.is_absolute()
 
 
 def test_load_config_creates_default_when_missing(tmp_path: Path) -> None:
@@ -10,6 +14,15 @@ def test_load_config_creates_default_when_missing(tmp_path: Path) -> None:
 
     assert config == DEFAULT_CONFIG
     assert config_path.exists()
+
+
+def test_load_config_uses_default_when_missing_file_cannot_be_created(monkeypatch) -> None:
+    def raise_permission_error(config: AppConfig, path: Path) -> None:
+        raise PermissionError
+
+    monkeypatch.setattr("app.config.save_config", raise_permission_error)
+
+    assert load_config(Path("missing-config.json")) == DEFAULT_CONFIG
 
 
 def test_load_config_reads_custom_values(tmp_path: Path) -> None:

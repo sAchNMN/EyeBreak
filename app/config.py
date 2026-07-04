@@ -5,8 +5,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from app.paths import runtime_file_path
 
-CONFIG_PATH = Path("config.json")
+
+CONFIG_PATH = runtime_file_path("config.json")
 
 
 @dataclass(frozen=True)
@@ -23,7 +25,10 @@ DEFAULT_CONFIG = AppConfig()
 
 def load_config(path: Path = CONFIG_PATH) -> AppConfig:
     if not path.exists():
-        save_config(DEFAULT_CONFIG, path)
+        try:
+            save_config(DEFAULT_CONFIG, path)
+        except OSError:
+            return DEFAULT_CONFIG
         return DEFAULT_CONFIG
 
     try:

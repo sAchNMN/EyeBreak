@@ -30,6 +30,67 @@ The project deliberately avoids non-MVP scope for now:
 
 ## Current Status
 
+## Current Autostart Runtime Path Fix
+
+User reported PyInstaller startup crashes on Windows login:
+
+* `PermissionError: [Errno 13] Permission denied: 'config.json'`
+* traceback entered through `main.py -> load_config() -> save_config()`
+* after the config fix, startup still failed with `PermissionError: [WinError 5]` on `assets`
+* second traceback entered through `main.py -> ReminderTimer.run() -> ensure_icon_file()`
+
+Root cause:
+
+* `CONFIG_PATH = Path("config.json")` depended on the process current working directory.
+* `ICON_PATH = Path("assets") / "eyebreak.ico"` had the same cwd dependency.
+* Windows Run-key autostart does not guarantee the app folder as cwd, so startup could try to create runtime files in a protected directory.
+
+Changed files:
+
+* `app/paths.py` (new)
+* `app/config.py`
+* `app/icons.py`
+* `app/state.py`
+* `tests/test_paths.py` (new)
+* `tests/test_config.py`
+* `tests/test_icons.py`
+* `tests/test_state.py`
+* `README.md`
+* `HANDOFF.md`
+
+Current behavior:
+
+* Source runs resolve runtime files from the project root.
+* Frozen PyInstaller runs resolve runtime files from the `EyeBreak.exe` folder.
+* `config.json`, `app_state.json`, and `assets/eyebreak.ico` no longer depend on Windows autostart cwd.
+* Missing `config.json` still returns defaults if the default file cannot be created.
+* `assets/eyebreak.ico` creation failure is ignored; Tkinter/Pillow fallback icon creation can still run without that file.
+* `app_state.json` write failure during exit is ignored because floating-window position persistence is optional.
+
+Dependency decision:
+
+* No new dependency was added.
+* Python standard-library `sys` and `pathlib` are enough for path resolution.
+
+Test commands and results:
+
+* Ordinary config-path targeted run: `python -m pytest -q tests\test_config.py tests\test_state.py tests\test_paths.py tests\test_autostart.py -p no:cacheprovider --basetemp=.tmp\pytest` returned `14 passed, 9 errors`; errors were the known Windows sandbox `.tmp\pytest` cleanup `PermissionError`, not assertion failures.
+* Escalated config-path targeted rerun passed: `25 passed in 0.15s`.
+* Ordinary icon-path targeted run: `python -m pytest -q tests\test_icons.py tests\test_paths.py tests\test_config.py tests\test_state.py tests\test_autostart.py -p no:cacheprovider --basetemp=.tmp\pytest` returned `20 passed, 11 errors`; errors were the same sandbox `.tmp\pytest` cleanup `PermissionError`, not assertion failures.
+* Escalated icon-path targeted rerun passed: `31 passed in 0.33s`.
+* Escalated full regression after config fix passed: `71 passed in 0.46s` with `python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest`.
+* Escalated full regression after icon fix passed: `73 passed in 0.35s` with the same full-test command.
+* First PyInstaller rebuild attempt failed on `build\build\base_library.zip` with `PermissionError: [WinError 5]`.
+* Escalated rebuild then failed because two old `EyeBreak.exe` processes were still holding `dist\EyeBreak.exe`.
+* Stopped old EyeBreak processes `13500` and `13876`.
+* Final escalated rebuild passed with `python -m PyInstaller build.spec`; output is `dist\EyeBreak.exe`.
+* Smoke run passed: started `dist\EyeBreak.exe`, waited 3 seconds, confirmed process `5012` was still running, then stopped it.
+
+Manual acceptance status:
+
+* Rebuilt executable smoke test passed.
+* This startup-crash fix still needs user validation through the real Windows login autostart flow.
+
 * Git status at takeover: clean and synced with `origin/master`.
 * Automated tests: `44 passed` with
   `python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest` after escalated rerun.
@@ -821,3 +882,66 @@ Test impact:
 Manual acceptance status:
 
 * No pending manual acceptance items are recorded at this point.
+## Current Release Record Feature
+
+User approved adding a lightweight release/version record after accepted fullscreen detection.
+
+Changed files:
+
+* `VERSION` (new)
+* `RELEASES.md` (new)
+* `HANDOFF.md`
+
+Current behavior:
+
+* `VERSION` records the accepted baseline version as `v1`.
+* `RELEASES.md` records the accepted baseline release `v1` dated 2026-07-04.
+* The release baseline is explicitly tied to commit `c80c8f8` on `master`.
+* The release record lists included accepted features, build command, test baseline, manual acceptance scope, and excluded work.
+* Current local `config.json` edits and current uncommitted autostart runtime path fix work are explicitly excluded from release `v1`.
+
+Dependency decision:
+
+* No dependency changes.
+* Plain Markdown and a plain text `VERSION` file are enough for a lightweight desktop release record.
+
+Test impact:
+
+* Tests were not rerun for this documentation-only release-record change.
+* Last confirmed full test result remains `64 passed in 0.40s` with `python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest` after escalated rerun.
+
+Manual acceptance status:
+
+* Release record is pending user acceptance.
+
+Known limitations / next work:
+
+* The worktree already contains separate uncommitted autostart runtime path fix changes. Keep those separate from release `v1` unless the user explicitly accepts and commits them.
+## Current Release Name Adjustment
+
+User requested the lightweight release name should be `v1` instead of `0.1.0`.
+
+Changed files:
+
+* `VERSION`
+* `RELEASES.md`
+* `HANDOFF.md`
+
+Current behavior:
+
+* The accepted baseline release is now named `v1`.
+* The release still points to commit `c80c8f8` on `master`.
+* No code behavior changed.
+
+Dependency decision:
+
+* No dependency changes.
+
+Test impact:
+
+* Tests were not rerun for this documentation-only rename.
+* Last confirmed full test result remains `64 passed in 0.40s` with `python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest` after escalated rerun.
+
+Manual acceptance status:
+
+* Release name adjustment is pending user acceptance.

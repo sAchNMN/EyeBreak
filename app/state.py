@@ -5,8 +5,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from app.paths import runtime_file_path
 
-APP_STATE_PATH = Path("app_state.json")
+
+APP_STATE_PATH = runtime_file_path("app_state.json")
 VALID_FLOATING_EDGES = {"left", "right", "top", "bottom"}
 
 
@@ -52,7 +54,10 @@ def save_app_state(state: AppState, path: Path = APP_STATE_PATH) -> None:
             "y": state.floating_countdown_y,
         }
     }
-    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    try:
+        path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    except OSError:
+        return
 
 
 def _floating_edge(value: Any) -> str | None:
