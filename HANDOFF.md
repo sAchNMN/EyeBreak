@@ -89,7 +89,7 @@ Test commands and results:
 Manual acceptance status:
 
 * Rebuilt executable smoke test passed.
-* This startup-crash fix still needs user validation through the real Windows login autostart flow.
+* User confirmed acceptance in this turn.
 
 * Git status at takeover: clean and synced with `origin/master`.
 * Automated tests: `44 passed` with
@@ -945,3 +945,30 @@ Test impact:
 Manual acceptance status:
 
 * Release name adjustment is pending user acceptance.
+
+## Current Autostart Runtime Path Fix Accepted
+
+User confirmed acceptance in this turn.
+
+Changed files:
+
+* `README.md`
+* `HANDOFF.md`
+
+Current behavior:
+
+* No code behavior changed in this update.
+* Documentation now marks the autostart runtime path fix as accepted.
+
+Dependency decision:
+
+* No dependency changes.
+
+Test impact:
+
+* Tests were not rerun for this documentation-only acceptance update.
+* Last confirmed full test result remains `73 passed in 0.35s` with `python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest`.
+
+Manual acceptance status:
+
+* Autostart runtime path fix has been accepted by the user.

@@ -35,6 +35,7 @@ Implemented:
 
 * JSON configuration for reminder interval, break duration, pause duration, idle threshold, and fullscreen detection.
 * Tray settings window for editing reminder interval, break duration, default pause duration, idle threshold, and fullscreen detection without manually editing `config.json`.
+* Runtime files resolve from the app folder instead of the current working directory, so Windows autostart does not write `config.json`, `app_state.json`, or `assets/eyebreak.ico` into protected locations.
 
 Pending manual acceptance:
 
@@ -64,6 +65,7 @@ Manual acceptance status:
 * Tray check-mark immediate-refresh behavior accepted by the user.
 * Tray settings window behavior accepted by the user.
 * Fullscreen detection behavior accepted by the user.
+* Autostart runtime path fix accepted by the user.
 
 ## Install
 
