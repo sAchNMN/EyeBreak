@@ -1,93 +1,62 @@
 ﻿# EyeBreak
 
-EyeBreak is a small Windows eye-break reminder built with Python, Tkinter, and
-`pystray`.
+EyeBreak 是一个面向 Windows 中文用户的护眼休息提醒工具。
 
-It reminds the user to look far away after a configurable interval, shows a
-draggable floating countdown, and provides tray-menu controls for common actions.
+它用 Python、Tkinter 和 `pystray` 开发。程序会按设定间隔提醒用户休息眼睛，并提供悬浮倒计时、系统托盘菜单、暂停时长选择、开机自启和全屏延后提醒等功能。
 
-## Current Status
+## 当前状态
 
-Implemented:
+已完成：
 
-* Draggable floating countdown showing time until the next reminder.
-* Floating countdown can be moved anywhere on screen.
-* Floating countdown remembers its last position after normal app exit.
-* Floating countdown auto-hides only when docked to a screen edge.
-* Floating countdown stays fully visible when it is not edge-docked.
-* Hidden floating countdown skips visible number redraws and refreshes immediately when revealed.
-* Floating countdown marks pause state with "暂停中", idle state with "已离开", and fullscreen state with "全屏中".
-* Idle detection (5 minutes by default) — when the user is away, reminders pause automatically and resume when they return.
-* Fullscreen detection — when a fullscreen app is active, reminders are delayed and resume after fullscreen exits.
-* System tray menu powered by `pystray`, including a floating-window toggle and settings window.
-* Autostart toggle in the tray menu, persistent through Windows registry (HKCU\...\Run).
-* Topmost reminder popup with break countdown.
-* Skip, pause, resume, immediate break, and exit flows.
-* Mouse-wheel pause-duration adjustment on the reminder popup pause button.
-* Custom EyeBreak icon used by the tray, Tkinter reminder window, and Windows taskbar grouping.
-* Tray pause menu with selectable pause durations:
+* 悬浮倒计时显示距离下一次提醒的剩余时间。
+* 悬浮倒计时可拖动，可记住上次位置。
+* 悬浮倒计时贴到屏幕边缘后自动隐藏，鼠标碰到后显示。
+* 未贴边时，悬浮倒计时保持完整显示。
+* 悬浮倒计时隐藏时跳过界面数字刷新，显示时立即刷新。
+* 暂停时显示“暂停中”，离开时显示“已离开”，全屏时显示“全屏中”。
+* 用户离开检测：默认离开 5 分钟后自动延后提醒，返回后重新计时。
+* 全屏检测：全屏应用运行时延后提醒，退出全屏后重新计时。
+* 系统托盘菜单，包含立即休息、暂停、恢复、设置、开关悬浮窗、开机自启和退出。
+* 开机自启开关，写入当前用户 Windows 注册表 `HKCU\...\Run`。
+* 置顶提醒弹窗和休息倒计时。
+* 跳过、暂停、恢复、立即休息、退出流程。
+* 提醒弹窗暂停按钮支持鼠标滚轮调整暂停时长。
+* 自定义 EyeBreak 图标，覆盖托盘、提醒窗口和 Windows 任务栏显示。
+* 托盘暂停菜单支持 5、15、30、60、120 分钟。
+* JSON 配置，保存提醒间隔、休息时长、暂停时长、离开检测阈值和全屏检测开关。
+* 托盘设置窗口，可直接修改常用配置，不需要手动编辑 `config.json`。
+* 运行时文件从应用目录读取，避免开机自启时把 `config.json`、`app_state.json` 或图标资源写到受保护目录。
 
-  * 5 minutes;
-  * 15 minutes;
-  * 30 minutes;
-  * 60 minutes;
-  * 120 minutes.
+未实现：
 
-* JSON configuration for reminder interval, break duration, pause duration, idle threshold, and fullscreen detection.
-* Tray settings window for editing reminder interval, break duration, default pause duration, idle threshold, and fullscreen detection without manually editing `config.json`.
-* Runtime files resolve from the app folder instead of the current working directory, so Windows autostart does not write `config.json`, `app_state.json`, or `assets/eyebreak.ico` into protected locations.
+* 账号系统。
+* 云同步。
+* 每日报告。
+* AI 分析。
+* 摄像头检测。
+* 完整番茄钟流程。
 
-Pending manual acceptance:
+## 安装
 
-* None at this point.
+托盘功能依赖 `pystray` 和 Pillow。
 
-Not implemented yet:
-
-* Accounts.
-* Cloud sync.
-* Daily reports.
-* AI analysis.
-* Camera detection.
-* Full pomodoro behavior.
-
-Manual acceptance status:
-
-* Initial reminder flow accepted by the user.
-* Earlier countdown status window accepted by the user before it was replaced by the floating countdown.
-* System tray behavior accepted by the user.
-* Tray pause-duration selection accepted by the user.
-* Program icon implementation accepted by the user, including tray, window,
-  and Windows taskbar icon behavior.
-* Current draggable floating countdown and position-persistence update accepted by the user.
-* Idle detection behavior accepted by the user.
-* Autostart toggle behavior accepted by the user.
-* PyInstaller build output accepted by the user.
-* Tray check-mark immediate-refresh behavior accepted by the user.
-* Tray settings window behavior accepted by the user.
-* Fullscreen detection behavior accepted by the user.
-* Autostart runtime path fix accepted by the user.
-
-## Install
-
-Runtime tray support depends on `pystray` and Pillow.
-
-Install dependencies:
+安装依赖：
 
 ```powershell
 python -m pip install -r requirements.txt
 ```
 
-## Run
+## 运行
 
-Run the app:
+启动程序：
 
 ```powershell
 python main.py
 ```
 
-On first run, EyeBreak creates `config.json` beside the app. This file is local runtime state and is intentionally ignored by Git.
+首次运行时，EyeBreak 会在应用目录旁生成 `config.json`。这个文件属于本地运行配置，已被 Git 忽略。
 
-For faster acceptance testing, temporarily set `config.json` to short intervals:
+为了快速验收，可以临时把 `config.json` 改成短间隔：
 
 ```json
 {
@@ -97,7 +66,7 @@ For faster acceptance testing, temporarily set `config.json` to short intervals:
 }
 ```
 
-Restore normal values after testing:
+验收结束后建议恢复正常值：
 
 ```json
 {
@@ -107,154 +76,129 @@ Restore normal values after testing:
 }
 ```
 
-## Test
+## 测试
 
-Run automated tests:
+运行自动化测试：
 
 ```powershell
 python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest
 ```
 
-Last known automated result: `73 passed in 0.40s` with the command above after escalated rerun.
+最近一次结果：提权重跑后 `73 passed in 0.40s`。
 
-## Build
+## 构建
 
-Build a standalone Windows executable with PyInstaller:
+用 PyInstaller 构建 Windows 独立可执行文件：
 
 ```powershell
 pip install pyinstaller
 python -m PyInstaller build.spec
 ```
 
-The output is `dist/EyeBreak.exe`. Copy the entire `dist/` folder to another
-machine; no Python installation is needed.
+产物是 `dist/EyeBreak.exe`。把整个 `dist/` 文件夹复制到其他 Windows 电脑即可运行，不需要额外安装 Python。
 
-> **Note:** `config.json` and `app_state.json` are read from the app folder, not
-> from the current working directory. In packaged builds, place them alongside
-> `EyeBreak.exe`.
+注意：`config.json` 和 `app_state.json` 从应用目录读取。打包后如需预置配置，把它们放在 `EyeBreak.exe` 旁边。
 
-Environment note:
+环境说明：
 
-* Use `--basetemp=.tmp\pytest` to avoid temp/cache write issues in restricted
-  environments.
-* In this Windows sandbox, ordinary-permission pytest may fail while cleaning
-  `.tmp\pytest` with `PermissionError: [WinError 5]`; the escalated rerun passed.
+* 建议测试时使用 `--basetemp=.tmp\pytest`，避免受限环境里的临时目录权限问题。
+* 当前 Windows 沙箱下，普通权限测试可能在清理 `.tmp\pytest` 时遇到 `PermissionError: [WinError 5]`。提权重跑已通过。
 
-## Acceptance Checklist
+## 验收清单
 
-Before a UI milestone is considered accepted, manually verify the relevant flow.
+### 悬浮倒计时
 
-### Floating Countdown
+* 启动后，屏幕边缘只露出窄条。
+* 鼠标移动到窄条上，倒计时面板显示并立即刷新。
+* 把面板拖离边缘后，面板完整显示，不再自动隐藏。
+* 把面板拖到左、右、上、下任意边缘后，面板贴边。
+* 贴边后，鼠标离开面板，面板自动隐藏，只保留窄条。
+* 窄条方向正确：右侧贴边时窄条在左，左侧贴边时窄条在右，顶部贴边时窄条在下，底部贴边时窄条在上。
+* 面板显示距离下一次提醒的剩余时间。
+* 面板可见时，倒计时每秒刷新。
+* 面板隐藏时，程序继续计时，但不刷新可见数字。
+* 暂停时，标题显示“暂停中”，剩余时间显示为黄色。
+* 用户离开达到 `idle_threshold_minutes` 后，标题显示“已离开”。
+* 全屏应用运行时，标题显示“全屏中”，提醒延后。
+* 退出并重新启动后，悬浮面板回到上次保存的位置。
+* 暂停结束后，提醒恢复，悬浮面板显示下一次提醒倒计时。
+* 托盘“开关悬浮窗”可以隐藏或显示悬浮倒计时，不影响提醒计时。
 
-* On startup, only a narrow tab is visible on the right edge of the screen.
-* Moving the mouse pointer onto the tab reveals the countdown panel and immediately refreshes the displayed time.
-* Dragging the panel away from every screen edge leaves it fully visible and disables auto-hide.
-* Dragging the panel to the left, right, top, or bottom edge docks it to that edge.
-* When docked, moving the mouse pointer outside the panel hides it immediately and leaves only the tab visible.
-* The bright tab stays on the inside edge: left side when docked right, right side when docked left, bottom when docked top, and top when docked bottom.
-* The countdown panel shows time until the next reminder.
-* The countdown text updates once per second while the panel is visible.
-* While the panel is hidden, the app keeps timing reminders but skips visible number redraws until reveal.
-* During pause, the panel title says "暂停中" and the remaining pause time is yellow.
-* When the user is idle (away from keyboard/mouse) for the `idle_threshold_minutes`, the panel title says "已离开" in gray.
-* When a fullscreen app is active, the panel title says "全屏中" in blue and reminders are delayed.
-* After exiting and starting again, the floating panel returns to its last saved position.
-* After pause ends, reminders resume and the floating panel shows the next reminder countdown.
-* The tray menu item "开关悬浮窗" hides and shows the floating countdown without stopping reminders.
-* The floating panel stays above normal windows without becoming a full workflow screen.
+### 基础提醒
 
-### Basic Reminder Flow
+* 倒计时归零后弹出提醒窗口。
+* 提醒窗口居中并置顶。
+* 提醒窗口倒计时每秒减少。
+* 倒计时结束后，提醒窗口自动关闭。
+* 点击跳过后关闭当前提醒，并进入下一轮提醒计时。
+* 点击退出后结束程序。
 
-* Short interval reminder appears when the countdown reaches zero.
-* Reminder popup appears centered and topmost.
-* Reminder popup countdown decreases once per second.
-* Reminder popup closes automatically when countdown reaches zero.
-* Skip closes the popup and starts the next reminder interval.
-* Exit from the reminder popup terminates the app.
+### 离开检测
 
-### Idle Detection
+* 用户离开达到 `idle_threshold_minutes` 后，不再弹出提醒。
+* 用户移动鼠标或按键返回后，提醒间隔重新开始计时。
+* 把 `idle_threshold_minutes` 设为 `0` 可以关闭离开检测。
 
-* When the user is away from the computer for `idle_threshold_minutes` (default 5), the floating countdown panel changes to "已离开" and reminders stop appearing.
-* When the user returns (moves the mouse or presses a key), the reminder interval restarts from the beginning.
-* Set `idle_threshold_minutes` to `0` in `config.json` to disable idle detection.
+### 全屏检测
 
+* 全屏游戏、视频或演示运行时，不弹出提醒窗口。
+* 悬浮倒计时显示“全屏中”和 `--:--`。
+* 退出全屏后，下一轮提醒重新计时。
+* 设置窗口里的“全屏时延后提醒”可以关闭或开启该功能。
+* 普通非全屏窗口不会延后提醒。
 
-### Fullscreen Detection
+### 暂停流程
 
-* When a fullscreen game, video, or presentation is active, the reminder popup does not appear.
-* The floating countdown panel changes to "全屏中" and shows `--:--` while fullscreen is active.
-* After exiting fullscreen, the next reminder interval restarts from the beginning.
-* The settings window checkbox "全屏时延后提醒" can disable or enable this behavior.
-* Non-fullscreen foreground windows do not delay reminders.
+* 提醒弹窗暂停按钮使用 `config.json` 中的默认暂停时长。
+* 鼠标滚轮悬停在暂停按钮上时，可把暂停时长调整到 1 到 120 分钟。
+* 点击暂停后，提醒弹窗关闭。
+* 暂停期间，悬浮倒计时显示“暂停中”和剩余暂停时间。
+* 暂停结束后，提醒恢复，悬浮倒计时显示下一次提醒倒计时。
 
-### Pause Flow
+### 系统托盘
 
-* Reminder popup pause button uses the default pause duration from `config.json`.
-* Mouse wheel over the pause button adjusts the pause duration between 1 and 120
-  minutes before clicking pause.
-* Pause closes the popup.
-* During pause, the floating countdown panel says "暂停中" and shows remaining pause time.
-* After pause ends, reminders resume and the floating countdown panel shows the
-  next reminder countdown.
+* Windows 系统托盘显示 EyeBreak 图标。
+* “立即休息”会立刻打开提醒窗口。
+* “暂停”展开 5、15、30、60、120 分钟选项。
+* 每个暂停选项都按对应时长生效。
+* “恢复”清除暂停，并重新开始提醒倒计时。
+* “开关悬浮窗”隐藏或显示悬浮倒计时。
+* “开机自启”切换 Windows 当前用户注册表启动项。
+* “退出”结束程序并移除托盘图标。
 
-### Tray Flow
+### 设置窗口
 
-* Tray icon appears in the Windows system tray.
-* Tray menu item "立即休息" opens the reminder popup immediately.
-* Tray menu item "暂停" opens duration choices:
+* 托盘“设置”只打开一个设置窗口；再次点击会聚焦已有窗口。
+* 设置窗口显示当前提醒间隔、休息时长、默认暂停时长、离开检测阈值和全屏检测开关。
+* 保存合法值后写入 `config.json`。
+* 输入非法值时提示错误，不覆盖 `config.json`。
+* 保存提醒间隔后，下一次提醒倒计时立即使用新值。
+* 暂停期间保存设置时，当前暂停截止时间不变。
+* `idle_threshold_minutes` 设为 `0` 后关闭离开检测。
+* 取消勾选“全屏时延后提醒”后关闭全屏延后提醒。
 
-  * 5 minutes;
-  * 15 minutes;
-  * 30 minutes;
-  * 60 minutes;
-  * 120 minutes.
+### 图标检查
 
-* Choosing each tray pause duration updates the countdown panel to that chosen
-  pause length, not the fixed configured default.
-* Tray menu item "恢复" clears pause and starts a fresh reminder countdown.
-* Tray menu item "开关悬浮窗" hides or shows the floating countdown panel.
-* Tray menu item "开机自启" toggles the EyeBreak entry in Windows registry
-  (HKCU\...\Run). When checked, the app starts automatically on user login.
-  Tray menu item "退出" terminates the app and removes the tray icon.
+* 托盘图标显示正常。
+* 提醒窗口标题栏显示 EyeBreak 图标。
+* Windows 任务栏显示 EyeBreak 图标，而不是默认 Python 图标。
+* 图标在 Windows 上观感正常。
 
+## 发布规则
 
-### Settings Window
+遵循 `AGENTS.md` 中的提交、测试、验收和推送规则。
 
-* Tray menu item "设置" opens one settings window; selecting it again focuses the existing window.
-* The window shows current reminder interval, break duration, default pause duration, idle detection threshold, and fullscreen detection toggle.
-* Saving valid values writes `config.json`.
-* Invalid values show an error and do not overwrite `config.json`.
-* Saved reminder interval takes effect immediately for the next reminder countdown.
-* If reminders are currently paused, saving settings keeps the current pause deadline and updates the reminder scheduled after the pause ends.
-* Setting idle detection to `0` disables idle detection.
-* Unchecking "全屏时延后提醒" disables fullscreen-based reminder delay.
+摘要：
 
-### Icon Check
+* 用户可见行为、命令、依赖或验收状态变化时，同步更新 `README.md` 和 `HANDOFF.md`。
+* 提交前运行相关测试。
+* 汇报时写明实际运行的测试命令和结果。
+* 没有运行测试就不能声称测试通过。
+* 提交前检查 `git status`。
+* 不提交临时文件、本地配置、IDE 文件、缓存和草稿。
+* 用户明确说“验收没有问题”或“验收没问题”前，不推送到 GitHub。
+* 只推送已验收的里程碑。
 
-* Tray icon appears correctly in the Windows system tray.
-* Reminder popup shows the EyeBreak icon in the title bar.
-* Windows taskbar shows the EyeBreak icon instead of the default Python icon when the app is represented there.
-* Icon appearance is visually acceptable on Windows.
+## 下一步
 
-## Release Discipline
-
-Follow `AGENTS.md` for commit, test, acceptance, and push rules.
-
-Summary:
-
-* Update `README.md` and `HANDOFF.md` before milestone acceptance when behavior,
-  commands, dependencies, or acceptance status changes.
-* Run relevant tests before committing.
-* Report exact test commands and results when reporting completion.
-* Do not claim tests passed unless they were actually run.
-* Inspect `git status` before committing.
-* Exclude unrelated, temporary, local IDE, cache, or scratch files from commits.
-* Do not push until the user explicitly confirms acceptance has no issues, such
-  as "验收没有问题".
-* Push only the accepted milestone to GitHub.
-
-## Next Planned Feature
-
-Fullscreen detection has been implemented and accepted. Next:
-
-* Consider a lightweight release/version note for accepted desktop builds.
+当前 v1 已发布，发布记录以 GitHub Releases 页面为准。下一步可以继续做更细的用户体验优化，或准备 Windows 安装包。

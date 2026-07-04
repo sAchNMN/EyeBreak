@@ -1,29 +1,29 @@
-﻿# Python cache and test temp
+﻿# Python 缓存和测试临时文件
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .tmp/
 
-# Virtual environments and coverage
+# 虚拟环境和覆盖率输出
 .venv/
 venv/
 env/
 .coverage
 htmlcov/
 
-# Local runtime state
+# 本地运行状态
 config.json
 app_state.json
 *.log
 
-# Local tools and scratch state
+# 本地工具和草稿状态
 .mimocode/
 mimo.exe
 
-# Local AI tool artifacts
+# 本地 AI 工具产物
 .reasonix/
 CLAUDE.md
 
-# PyInstaller build artifacts
+# PyInstaller 构建产物
 dist/
 build/
