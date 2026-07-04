@@ -896,9 +896,9 @@ Current behavior:
 
 * `VERSION` records the accepted baseline version as `v1`.
 * `RELEASES.md` records the accepted baseline release `v1` dated 2026-07-04.
-* The release baseline is explicitly tied to commit `c80c8f8` on `master`.
+* The release baseline is explicitly tied to commit `a697c05` on `master`.
 * The release record lists included accepted features, build command, test baseline, manual acceptance scope, and excluded work.
-* Current local `config.json` edits and current uncommitted autostart runtime path fix work are explicitly excluded from release `v1`.
+* Current local `config.json` edits are explicitly excluded from release `v1`.
 
 Dependency decision:
 
@@ -912,11 +912,12 @@ Test impact:
 
 Manual acceptance status:
 
-* Release record is pending user acceptance.
+* Release record has been accepted by the user.
 
 Known limitations / next work:
 
-* The worktree already contains separate uncommitted autostart runtime path fix changes. Keep those separate from release `v1` unless the user explicitly accepts and commits them.
+* Earlier release draft notes excluded the autostart runtime path fix, but that exclusion is no longer current after `a697c05` was submitted.
+
 ## Current Release Name Adjustment
 
 User requested the lightweight release name should be `v1` instead of `0.1.0`.
@@ -930,7 +931,7 @@ Changed files:
 Current behavior:
 
 * The accepted baseline release is now named `v1`.
-* The release still points to commit `c80c8f8` on `master`.
+* The release now points to commit `a697c05` on `master`.
 * No code behavior changed.
 
 Dependency decision:
@@ -944,7 +945,35 @@ Test impact:
 
 Manual acceptance status:
 
-* Release name adjustment is pending user acceptance.
+* Release name adjustment has been accepted by the user.
+## Current Release Record Chinese Rewrite
+
+User requested the release record should be written in Chinese.
+
+Changed files:
+
+* `RELEASES.md`
+* `HANDOFF.md`
+
+Current behavior:
+
+* `RELEASES.md` now uses Chinese headings and Chinese release notes.
+* Release name remains `v1`.
+* Release baseline now remains accepted commit `a697c05` on `master`.
+* The release record is Chinese and now includes the submitted autostart runtime path fix through `a697c05`.
+
+Dependency decision:
+
+* No dependency changes.
+
+Test impact:
+
+* Tests were not rerun for this documentation-only rewrite.
+* Last confirmed full test result remains `64 passed in 0.40s` with `python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest` after escalated rerun.
+
+Manual acceptance status:
+
+* Chinese release record has been accepted by the user.
 
 ## Current Autostart Runtime Path Fix Accepted
 
@@ -972,3 +1001,61 @@ Test impact:
 Manual acceptance status:
 
 * Autostart runtime path fix has been accepted by the user.
+## Current Release Baseline Recheck
+
+User said the autostart runtime path fix has now been submitted. I refreshed `origin/master` with `git fetch origin` and verified local `HEAD` and `origin/master` both point to `a697c05`.
+
+Changed files:
+
+* `RELEASES.md`
+* `HANDOFF.md`
+
+Current behavior:
+
+* `RELEASES.md` now uses `a697c05` as the `v1` source baseline.
+* `v1` now includes the accepted autostart runtime path fix.
+* The old exclusion for autostart runtime path fix work has been removed.
+* `v1` still excludes the current local `config.json` change and non-MVP future scope.
+
+Dependency decision:
+
+* No dependency changes.
+
+Test impact:
+
+* Tests were not rerun for this documentation-only release-record correction.
+* Last confirmed full test result for the new baseline remains `73 passed in 0.35s` with `python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest` after escalated rerun.
+
+Manual acceptance status:
+
+* Corrected `v1` release record has been accepted by the user.
+## Current v1 Release Record Accepted
+
+User confirmed acceptance with: `验收`.
+
+Changed files:
+
+* `VERSION`
+* `RELEASES.md`
+* `HANDOFF.md`
+
+Current behavior:
+
+* `VERSION` is `v1`.
+* `RELEASES.md` is written in Chinese.
+* The `v1` baseline is commit `a697c05` on `master`.
+* `v1` includes the accepted autostart runtime path fix.
+* Current local `config.json` changes remain excluded from the release record.
+
+Dependency decision:
+
+* No dependency changes.
+
+Test impact:
+
+* Tests were not rerun for this documentation-only acceptance update.
+* Last confirmed full test result for the release baseline remains `73 passed in 0.35s` with `python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest` after escalated rerun.
+
+Manual acceptance status:
+
+* `v1` release record has been accepted by the user.
