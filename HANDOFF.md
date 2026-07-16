@@ -193,3 +193,186 @@ dist/EyeBreak.exe
 测试影响：
 
 * 本次是文档清理，没有重新运行测试。
+
+## 当前这次新增 v1.1 体验优化规划
+
+变更文件：
+
+* `v1.1体验优化.md`：新增独立规划文件，记录 v1.1 体验优化建议、优先级、验收点和涉及文件。
+* `HANDOFF.md`：同步记录本次文档变更。
+
+当前行为：
+
+* 只新增规划文档。
+* 不改程序行为。
+* 不改依赖。
+* 不改安装、运行和构建命令。
+
+测试影响：
+
+* 本次是文档规划，没有运行自动化测试。
+
+## 当前这次架构重构 Phase 1：核心基础设施
+
+变更文件：
+
+* `app/core/__init__.py`：新增 core 包初始化。
+* `app/core/events.py`：新增 15 个领域事件 frozen dataclass（TimerStarted/Stopped/Tick、ReminderTriggered/Dismissed、StateChanged、IdleDetected/Ended、FullscreenDetected/Ended、Paused/Resumed、ConfigChanged、FloatingCountdownToggled、ExitRequested）。
+* `app/core/event_bus.py`：新增 EventBus 类型安全发布/订阅总线，支持按事件类型订阅、取消订阅、错误隔离（单个订阅者异常不影响其他订阅者）、线程安全（RLock）。
+* `app/core/state_machine.py`：新增 6 状态显式状态机（RUNNING/IDLE/FULLSCREEN/PAUSED/SHOWING_REMINDER/EXITED），含 17 条合法转换表、非法转换抛 IllegalTransition、每次成功转换发布 StateChanged 事件。
+* `app/platform/__init__.py`：新增 platform 包初始化。
+* `app/platform/protocols.py`：新增 5 个 runtime_checkable Protocol 接口（IdleDetector、FullscreenDetector、AutostartManager、ConfigRepository、StateRepository），核心层依赖 Protocol 而非具体实现。
+* `app/infra/__init__.py`：新增 infra 包初始化（预留，Phase 2 填充）。
+* `app/ui/__init__.py`：新增 ui 包初始化（预留，Phase 4 填充）。
+* `tests/test_event_bus.py`：新增 11 个 EventBus 测试。
+* `tests/test_state_machine.py`：新增 46 个 StateMachine 测试（含参数化合法/非法转换、事件发布、真实工作场景模拟）。
+* `tests/test_protocols.py`：新增 8 个 Protocol 接口测试（含 Fake 实现和现有模块适配器验证）。
+
+当前行为：
+
+* 新增核心基础设施代码，不修改任何现有源文件。
+* 现有 `main.py` → `ReminderTimer` 流程完全不受影响。
+* 新增代码与现有代码并存，为后续 Phase 2-4 迁移提供基础。
+
+依赖决策：
+
+* 零新依赖。仅使用 Python 标准库：`typing.Protocol`、`dataclasses`、`enum`、`threading`、`collections`、`logging`。
+* 不影响 `requirements.txt`。
+
+测试命令与结果：
+
+```powershell
+python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest
+```
+
+* 结果：`141 passed in 0.86s`（73 原有 + 68 新增，零回归）。
+
+已知限制：
+
+* EventBus 和 StateMachine 已就绪但尚未接入 ReminderTimer。
+* Protocol 接口已定义但现有 idle.py/fullscreen.py/autostart.py 尚未适配（仍为模块级函数，需要 Phase 3 包装为 Protocol 实现）。
+
+## 当前这次架构重构 Phase 2：TimerEngine 核心域提取
+
+变更文件：
+
+* `app/core/timer_engine.py`（新增）：TimerEngine 纯业务逻辑核心，依赖 EventBus/StateMachine/Protocol 接口，零 UI/平台实现依赖。包含 tick、pause/resume、break_now、skip_reminder、save_config、toggle_floating_countdown、toggle_autostart、request_exit 等完整操作集。发布 12 个领域事件类型（Tick、ReminderTriggered、ReminderDismissed、Paused、Resumed、IdleDetected、IdleEnded、FullscreenDetected、FullscreenEnded、ConfigChanged、FloatingCountdownToggled、TimerStopped）。
+* `tests/test_timer_engine.py`（新增）：33 个 TimerEngine 单元测试，覆盖格式辅助函数、tick 正常流/暂停/idle/全屏/提醒触发/退出、pause/resume、break_now、skip_reminder、save_config、toggle_floating_countdown、toggle_autostart、request_exit。
+
+当前行为：
+
+* 新增核心域代码，不修改任何现有源文件。
+* 现有 main.py → ReminderTimer 流程完全不受影响。
+* EventBus + StateMachine + TimerEngine + Protocol 接口已就绪，为 Phase 3 平台适配和 Phase 4 UI 重构提供完整的核心域层。
+
+依赖决策：
+
+* 零新依赖。仅使用 Python 标准库。
+
+测试命令与结果：
+
+```powershell
+python -m pytest -q tests -p no:cacheprovider
+```
+
+* 结果：**174 passed in 1.05s**（73 原有 + 101 新增，零回归）。
+* 额外 11 个 ERROR 是 sandbox `--basetemp` 回收站不可用的已知环境问题（HANDOFF.md 已有记载），非代码问题。
+
+## 当前这次架构重构 Phase 3：平台适配器
+
+变更文件：
+
+* `app/platform/adapters.py`（新增）：5 个 Protocol 适配器类（IdleDetectorAdapter、FullscreenDetectorAdapter、AutostartManagerAdapter、ConfigRepositoryAdapter、StateRepositoryAdapter），每个适配器包装现有模块级函数为 Protocol 兼容类。零侵入——不修改现有模块。
+* `tests/test_adapters.py`（新增）：11 个测试，验证每个适配器满足 Protocol isinstance 检查，以及委托调用正常返回。
+
+当前行为：
+
+* 新增适配器代码，不修改任何现有源文件。
+* 现有 main.py → ReminderTimer 流程完全不受影响。
+* 所有 5 个 Protocol 接口都有对应的生产适配器，TimerEngine 可以实际注入。
+
+依赖决策：
+
+* 零新依赖。仅使用 Python 标准库。
+
+测试命令与结果：
+
+```powershell
+python -m pytest -q tests -p no:cacheprovider
+```
+
+* 结果：**185 passed in 0.66s**（+11 适配器测试，零回归）。
+
+## 当前这次架构重构 Phase 4：UI 事件桥接层
+
+变更文件：
+
+* `app/ui/bridge.py`（修改）：实现 EyeBreakBridge 事件驱动桥接层，完成 `ReminderTimer` God Class → EventBus 风格的迁移。包括：
+  - 事件订阅（Tick、ReminderTriggered/Dismissed、Paused/Resumed、Idle/Fullscreen、TimerStopped、FloatingCountdownToggled、ConfigChanged）
+  - `_main_tick()` 每秒驱动 engine.tick() 的循环
+  - `_ui_thread()` 跨线程安全调度
+  - `_save_settings()` 内存 + 磁盘双持久化
+  - `_on_timer_stopped()` 保存悬浮窗位置并清理资源
+  - 托盘自启动切换后立即刷新菜单
+* `main.py`（重写）：DI 容器风格，注入 EventBus → StateMachine → 平台适配器 → TimerEngine → EyeBreakBridge → Tk mainloop
+* `tests/test_bridge.py`（新增）：27 个 EyeBreakBridge 单元测试，覆盖所有事件处理器、设置窗口生命周期、主循环、状态标签参数化测试、清理流程、EventBus 集成测试
+
+当前行为：
+
+* 新启动流程：`main.py` 使用 TimerEngine + EyeBreakBridge 替代 ReminderTimer
+* 旧 `app/timer.py` 仍然保留，`tests/test_timer.py` 的 73 个测试继续通过
+
+依赖决策：
+
+* 零新依赖。
+
+测试命令与结果：
+
+```powershell
+python -m pytest -q tests -p no:cacheprovider
+```
+
+* 结果：**212 passed in 0.51s**（+27 bridge 测试，零回归）。
+
+## 当前这次架构重构 Phase 4 收尾：删除 God Class
+
+变更文件：
+
+* `tests/test_timer.py`（删除）：14 个旧 ReminderTimer 测试已全部被新架构覆盖（test_timer_engine.py + test_bridge.py）。
+* `app/timer.py`（删除）：ReminderTimer God Class（310 行）已完全退役，被 TimerEngine + EyeBreakBridge 替代。
+* 残留 `.pyc` 缓存文件一并清理。
+
+当前行为：
+
+* 启动入口 `main.py` 使用 DI 容器风格：`load_config/state → EventBus → StateMachine → 平台适配器 → TimerEngine → EyeBreakBridge → tkinter mainloop`。
+* 所有模块不再引用旧 `app.timer`。
+
+测试命令与结果：
+
+```powershell
+python -m pytest -q tests -p no:cacheprovider
+```
+
+* 结果：**198 passed in 0.56s**（14 个旧测试移除，零回归零失败）。
+
+## 下一步
+
+* 用户验收后提交 + 推送。
+
+### 依赖策略回顾
+
+项目优先使用标准库、现有代码、Tkinter 或成熟维护的包。
+
+已有依赖：
+
+* `pystray`：系统托盘。
+* `Pillow`：图标和托盘图像支持。
+
+当前未新增依赖。
+
+判断顺序：
+
+1. Python 标准库能解决就用标准库。
+2. Tkinter 或现有项目代码能解决就复用。
+3. 有成熟维护的包能直接降低风险时，优先使用包。
+4. 不为了扩展范围而加依赖。
