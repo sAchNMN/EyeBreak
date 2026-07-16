@@ -29,9 +29,6 @@ CLAUDE.md
 # AI 工具工作状态
 .workbuddy/
 
-# Git 内部目录（安全冗余）
-.git/
-
 # PyInstaller 构建产物
 dist/
 build/

@@ -1,19 +1,50 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+import sys
+import os
 from pathlib import Path
 
 PROJECT_ROOT = Path.cwd().resolve()
 
+# ── 手动数据文件 ──────────────────────────────────────────────
+datas = [
+    (str(PROJECT_ROOT / "assets" / "eyebreak.ico"), "assets"),
+]
+
+# ── Block cipher (from PyInstaller template) ──────────────────
 block_cipher = None
 
 a = Analysis(
     [str(PROJECT_ROOT / "main.py")],
     pathex=[str(PROJECT_ROOT)],
     binaries=[],
-    datas=[
-        (str(PROJECT_ROOT / "assets" / "eyebreak.ico"), "assets"),
-    ],
+    datas=datas,
     hiddenimports=[
+        # ── 新架构 ──
+        "app.core",
+        "app.core.events",
+        "app.core.event_bus",
+        "app.core.state_machine",
+        "app.core.timer_engine",
+        "app.platform",
+        "app.platform.protocols",
+        "app.platform.adapters",
+        "app.ui",
+        "app.ui.bridge",
+        "app.infra",
+        # ── 旧模块（主入口直接或间接使用） ──
+        "app.config",
+        "app.state",
+        "app.idle",
+        "app.fullscreen",
+        "app.autostart",
+        "app.paths",
+        "app.icons",
+        "app.tray",
+        "app.floating_countdown",
+        "app.reminder_window",
+        "app.settings_window",
+        # ── 第三方依赖 ──
         "pystray",
         "PIL",
         "PIL._tkinter_finder",
@@ -22,7 +53,11 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=[
+        "tkinter.test",
+        "unittest",
+        "pytest",
+    ],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
