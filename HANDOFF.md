@@ -1,4 +1,4 @@
-﻿# EyeBreak 交接文档
+# EyeBreak 交接文档
 
 这份文档给后续接手的 AI 代码工具或开发者使用。目标是让没有看过项目的人能快速判断项目状态、运行方式、约束和下一步工作。
 
@@ -442,3 +442,33 @@ python -m pytest -q tests -p no:cacheprovider
 2. Tkinter 或现有项目代码能解决就复用。
 3. 有成熟维护的包能直接降低风险时，优先使用包。
 4. 不为了扩展范围而加依赖。
+
+## Current fix: single running session
+
+Changed files:
+
+* `app/single_instance.py`: adds the Windows named mutex and named activation event coordinator.
+* `main.py`: allows only the primary instance to construct the timer, tray, and UI; it polls activation requests on the Tk UI thread and releases handles when exiting.
+* `app/ui/bridge.py`: adds the existing-session activation entry point.
+* `tests/test_single_instance.py` and `tests/test_bridge.py`: cover single ownership, startup-event retry, activation polling, and Settings-window focus behavior.
+* `README.md`: documents the repeated-launch behavior.
+
+Current behavior:
+
+* A later EyeBreak launch signals the current Windows-session instance and exits. The primary instance opens or focuses its Settings window without resetting the countdown or creating another tray icon.
+
+Dependency decision:
+
+* No product dependencies added; the implementation uses Python standard library `ctypes` and Windows kernel objects.
+
+Test commands and results:
+
+* `python -m pytest -q tests\test_single_instance.py tests\test_bridge.py -p no:cacheprovider --basetemp C:\tmp\eyebreak-single-instance-tests-2` - **32 passed in 0.17s**.
+* `python -m pytest -q tests -p no:cacheprovider --basetemp C:\tmp\eyebreak-full-tests-20260718` - sandbox blocked temporary-directory and registry access (1 failed, 191 passed, 12 errors); rerun outside the sandbox passed.
+* `python -m pytest -q tests -p no:cacheprovider --basetemp C:\tmp\eyebreak-final-tests-20260718` (outside sandbox) - **204 passed in 0.51s**.
+* `git diff --check` - passed.
+
+Build and manual acceptance:
+
+* `python -m PyInstaller build.spec` - passed; rebuilt `dist/EyeBreak.exe` with the single-instance implementation.
+* Manual acceptance passed: the user confirmed "??????" after verifying repeated launches keep one active session and focus the existing Settings window without resetting the countdown.

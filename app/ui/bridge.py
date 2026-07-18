@@ -214,7 +214,9 @@ class EyeBreakBridge:
             self._clear_settings_window,
         )
         self.settings.show()
-
+    def activate_existing_session(self) -> None:
+        """Bring the existing session settings window to the foreground."""
+        self._open_settings()
     def _save_settings(self, config: AppConfig) -> None:
         self.engine.save_config(config)
         save_config(config)  # persist to disk

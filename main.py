@@ -22,11 +22,23 @@ from app.platform.adapters import (
     FullscreenDetectorAdapter,
     IdleDetectorAdapter,
 )
+from app.single_instance import SingleInstanceManager
 from app.state import load_app_state
 from app.ui.bridge import EyeBreakBridge
 
 
 def main() -> None:
+    single_instance = SingleInstanceManager()
+    if not single_instance.acquire_or_activate():
+        return
+
+    try:
+        _run_primary_instance(single_instance)
+    finally:
+        single_instance.close()
+
+
+def _run_primary_instance(single_instance: SingleInstanceManager) -> None:
     # ── Infrastructure ──────────────────────────────────────────
     bus = EventBus()
     sm = StateMachine(bus)
@@ -63,9 +75,21 @@ def main() -> None:
         autostart_manager=autostart_manager,
     )
     bridge.build()
-
+    _poll_activation_requests(root, bridge, single_instance)
     root.mainloop()
 
+
+def _poll_activation_requests(
+    root: tk.Tk,
+    bridge: EyeBreakBridge,
+    single_instance: SingleInstanceManager,
+) -> None:
+    """Handle activation signals on Tk's UI thread without a worker thread."""
+    if bridge.engine.is_terminal:
+        return
+    if single_instance.consume_activation_request():
+        bridge.activate_existing_session()
+    root.after(250, _poll_activation_requests, root, bridge, single_instance)
 
 if __name__ == "__main__":
     main()

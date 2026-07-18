@@ -353,3 +353,16 @@ def test_bridge_subscribes_to_all_events(
     ]
     for event in events:
         bus.publish(event)  # should not crash or raise
+
+@patch("app.ui.bridge.SettingsWindow")
+def test_activate_existing_session_opens_or_focuses_settings(mock_sw, bridge) -> None:
+    bridge.activate_existing_session()
+
+    mock_sw.return_value.show.assert_called_once_with()
+
+    bridge.settings = mock_sw.return_value
+    bridge.settings.root.winfo_exists.return_value = True
+    bridge.activate_existing_session()
+
+    bridge.settings.focus.assert_called_once_with()
+    assert mock_sw.call_count == 1
