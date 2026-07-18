@@ -4,24 +4,21 @@ import sys
 import winreg
 from pathlib import Path
 
+
 APP_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
+STARTUP_APPROVED_KEY = (
+    r"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run"
+)
 APP_NAME = "EyeBreak"
+STARTUP_ENABLED_VALUE = b"\x02" + b"\x00" * 11
 
 
 def _get_target_command() -> str:
-    """Return the command that should be registered for autostart.
-
-    When running from a PyInstaller-built executable, use the exe path
-    directly. When running from source, use "pythonw.exe main.py" to
-    avoid a visible console window.
-    """
+    """Return the command that should be registered for autostart."""
     if getattr(sys, "frozen", False) and hasattr(sys, "executable"):
         return f'"{Path(sys.executable).resolve()}"'
 
-    # Running from source — resolve the script path
     script_path = Path(sys.argv[0]).resolve()
-
-    # Use pythonw.exe alongside python.exe to suppress the console
     interpreter = Path(sys.executable).resolve()
     pythonw = interpreter.with_name("pythonw.exe")
     if pythonw.is_file():
@@ -30,13 +27,50 @@ def _get_target_command() -> str:
 
 
 def set_autostart(enabled: bool) -> None:
-    """Enable or disable the EyeBreak autostart entry in HKCU\\...\\Run."""
-    key = winreg.OpenKey(
+    """Synchronize Run and StartupApproved entries for EyeBreak."""
+    key = winreg.CreateKeyEx(
         winreg.HKEY_CURRENT_USER, APP_KEY, 0, winreg.KEY_SET_VALUE
     )
     try:
         if enabled:
             winreg.SetValueEx(key, APP_NAME, 0, winreg.REG_SZ, _get_target_command())
+            _set_startup_approved(True)
+        else:
+            try:
+                winreg.DeleteValue(key, APP_NAME)
+            except FileNotFoundError:
+                pass
+            _set_startup_approved(False)
+    finally:
+        winreg.CloseKey(key)
+
+
+def is_autostart_enabled() -> bool:
+    """Check both the Run entry and Windows StartupApproved status."""
+    try:
+        key = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER, APP_KEY, 0, winreg.KEY_QUERY_VALUE
+        )
+        try:
+            command, _ = winreg.QueryValueEx(key, APP_NAME)
+            return bool(command) and _is_startup_approved()
+        except FileNotFoundError:
+            return False
+        finally:
+            winreg.CloseKey(key)
+    except OSError:
+        return False
+
+
+def _set_startup_approved(enabled: bool) -> None:
+    key = winreg.CreateKeyEx(
+        winreg.HKEY_CURRENT_USER, STARTUP_APPROVED_KEY, 0, winreg.KEY_SET_VALUE
+    )
+    try:
+        if enabled:
+            winreg.SetValueEx(
+                key, APP_NAME, 0, winreg.REG_BINARY, STARTUP_ENABLED_VALUE
+            )
         else:
             try:
                 winreg.DeleteValue(key, APP_NAME)
@@ -46,18 +80,21 @@ def set_autostart(enabled: bool) -> None:
         winreg.CloseKey(key)
 
 
-def is_autostart_enabled() -> bool:
-    """Check whether EyeBreak is registered in HKCU\\...\\Run."""
+def _is_startup_approved() -> bool:
     try:
         key = winreg.OpenKey(
-            winreg.HKEY_CURRENT_USER, APP_KEY, 0, winreg.KEY_QUERY_VALUE
+            winreg.HKEY_CURRENT_USER,
+            STARTUP_APPROVED_KEY,
+            0,
+            winreg.KEY_QUERY_VALUE,
         )
         try:
-            winreg.QueryValueEx(key, APP_NAME)
-            return True
+            value, _ = winreg.QueryValueEx(key, APP_NAME)
         except FileNotFoundError:
-            return False
+            return True
         finally:
             winreg.CloseKey(key)
     except OSError:
-        return False
+        return True
+
+    return not isinstance(value, bytes) or not value or value[0] != 0x03

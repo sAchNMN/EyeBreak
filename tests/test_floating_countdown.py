@@ -147,3 +147,24 @@ def test_place_tab_for_edge_uses_inside_screen_side() -> None:
         "place",
         {"x": 0, "y": 0, "width": WINDOW_WIDTH, "height": VISIBLE_TAB_WIDTH},
     )
+
+def test_initial_docked_window_is_visible() -> None:
+    from unittest.mock import MagicMock
+
+    from app.floating_countdown import FloatingCountdownWindow
+
+    window = FloatingCountdownWindow.__new__(FloatingCountdownWindow)
+    window.root = MagicMock()
+    window.root.winfo_screenwidth.return_value = 1920
+    window.root.winfo_screenheight.return_value = 1080
+    window._initial_y = None
+    window._edge = "right"
+    window._visible_x = 0
+    window._visible_y = 0
+    window._is_hidden = True
+    window._move_to_position = MagicMock()
+
+    window._apply_initial_position()
+
+    assert window._is_hidden is False
+    window._move_to_position.assert_called_once_with(1920 - WINDOW_WIDTH, edge_y_position(1080))

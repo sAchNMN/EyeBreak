@@ -472,3 +472,34 @@ Build and manual acceptance:
 
 * `python -m PyInstaller build.spec` - passed; rebuilt `dist/EyeBreak.exe` with the single-instance implementation.
 * Manual acceptance passed: the user confirmed "??????" after verifying repeated launches keep one active session and focus the existing Settings window without resetting the countdown.
+
+## Current fix: floating countdown startup visibility and autostart synchronization
+
+Changed files:
+
+* `app/state.py`: persists and restores the floating-countdown enabled flag.
+* `app/floating_countdown.py` and `app/ui/bridge.py`: apply the saved flag during startup and show an enabled docked countdown before normal auto-hide behavior.
+* `app/autostart.py`: synchronizes the current-user `Run` command with Windows `StartupApproved` state.
+* `tests/test_state.py`, `tests/test_floating_countdown.py`, `tests/test_bridge.py`, and `tests/test_autostart.py`: add regression coverage.
+* `README.md`: documents the corrected visible startup and synchronized autostart behavior.
+
+Current behavior:
+
+* The tray state now comes from the persisted floating-countdown flag; an enabled countdown is visible on launch even when it is docked to a screen edge.
+* Enabling autostart registers the current executable under `HKCU\...\Run` and explicitly records the enabled state under `HKCU\...\StartupApproved\Run`. The tray reflects a StartupApproved-disabled entry as disabled.
+* The Startup folder remains unused so a single autostart mechanism cannot create duplicate launches.
+
+Dependency decision:
+
+* No dependencies added; implementation uses Python standard-library `winreg` and the existing Tk UI.
+
+Tests and build:
+
+* `python -m pytest -q tests\test_state.py tests\test_autostart.py tests\test_floating_countdown.py tests\test_bridge.py -p no:cacheprovider --basetemp C:\tmp\eyebreak-startup-targeted` - sandbox could not create the requested temporary directory (4 setup errors); rerun with the required Windows permissions passed: `55 passed in 0.24s`.
+* `python -m pytest -q tests -p no:cacheprovider --basetemp C:\tmp\eyebreak-startup-full-20260718` - passed: `207 passed in 0.50s`.
+* `python -m PyInstaller build.spec` - passed; rebuilt `dist/EyeBreak.exe`.
+* Registry verification after the build: `EyeBreak` points to `"G:\桌面\CODE\EyeBreak\dist\EyeBreak.exe"` in `Run`, and `StartupApproved` is `020000000000000000000000` (enabled).
+
+Manual acceptance:
+
+* User confirmed "??????": an enabled docked countdown is immediately visible after launch and EyeBreak is enabled under Windows Startup apps.

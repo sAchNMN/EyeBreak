@@ -174,11 +174,7 @@ class FloatingCountdownWindow:
             return
 
         self.root.deiconify()
-        if self._edge:
-            self.hide()
-            return
         self.show()
-
     def set_paused(self, is_paused: bool) -> None:
         if not self.status_label:
             return
@@ -333,7 +329,8 @@ class FloatingCountdownWindow:
                 screen_width,
                 screen_height,
             )
-            self.hide()
+            self._move_to_position(self._visible_x, self._visible_y)
+            self._is_hidden = False
             return
 
         self._visible_x, self._visible_y = clamp_position(
@@ -345,7 +342,6 @@ class FloatingCountdownWindow:
         self._place_tab_for_edge()
         self._move_to_position(self._visible_x, self._visible_y)
         self._is_hidden = False
-
     def _place_tab_for_edge(self) -> None:
         if not self._tab or not self._content:
             return

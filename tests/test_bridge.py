@@ -366,3 +366,22 @@ def test_activate_existing_session_opens_or_focuses_settings(mock_sw, bridge) ->
 
     bridge.settings.focus.assert_called_once_with()
     assert mock_sw.call_count == 1
+
+def test_build_applies_persisted_floating_enabled_state(bridge) -> None:
+    from unittest.mock import MagicMock, patch
+
+    bridge._state.floating_countdown_enabled = False
+    bridge._build_floating = MagicMock()
+    bridge._wire_events = MagicMock()
+    bridge._build_tray = MagicMock()
+    bridge._main_tick = MagicMock()
+    bridge.engine.start = MagicMock()
+
+    with (
+        patch("app.ui.bridge.set_windows_app_user_model_id"),
+        patch("app.ui.bridge.ensure_icon_file"),
+        patch("app.ui.bridge.apply_window_icon"),
+    ):
+        bridge.build()
+
+    bridge.floating.set_enabled.assert_called_once_with(False)

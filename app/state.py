@@ -40,6 +40,9 @@ def load_app_state(path: Path = APP_STATE_PATH) -> AppState:
         return AppState()
 
     return AppState(
+        floating_countdown_enabled=_bool_value(
+            floating_state.get("enabled"), True
+        ),
         floating_countdown_edge=_floating_edge(floating_state.get("edge")),
         floating_countdown_x=_int_value(floating_state.get("x"), 0),
         floating_countdown_y=_optional_int_value(floating_state.get("y")),
@@ -49,6 +52,7 @@ def load_app_state(path: Path = APP_STATE_PATH) -> AppState:
 def save_app_state(state: AppState, path: Path = APP_STATE_PATH) -> None:
     payload = {
         "floating_countdown": {
+            "enabled": state.floating_countdown_enabled,
             "edge": state.floating_countdown_edge,
             "x": state.floating_countdown_x,
             "y": state.floating_countdown_y,
@@ -66,6 +70,10 @@ def _floating_edge(value: Any) -> str | None:
     if value is None:
         return None
     return "right"
+
+
+def _bool_value(value: Any, fallback: bool) -> bool:
+    return value if isinstance(value, bool) else fallback
 
 
 def _int_value(value: Any, fallback: int) -> int:

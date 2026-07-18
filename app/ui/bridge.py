@@ -79,6 +79,8 @@ class EyeBreakBridge:
         apply_window_icon(self.root)
 
         self._build_floating()
+        if self.floating:
+            self.floating.set_enabled(self._state.floating_countdown_enabled)
         self._wire_events()
         self._build_tray()
         self.engine.start()

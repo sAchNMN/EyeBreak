@@ -2,76 +2,100 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import ANY, call, patch
 
-from app.autostart import is_autostart_enabled, set_autostart
+from app.autostart import (
+    APP_KEY,
+    APP_NAME,
+    STARTUP_APPROVED_KEY,
+    STARTUP_ENABLED_VALUE,
+    is_autostart_enabled,
+    set_autostart,
+)
 
 
 class TestSetAutostart:
-    def test_enable_writes_to_run_key(self) -> None:
+    def test_enable_writes_run_and_startup_approved_entries(self) -> None:
         with patch("app.autostart.winreg") as mock_winreg:
-            mock_key = mock_winreg.OpenKey.return_value
-            mock_winreg.__enter__ = mock_winreg  # trick to allow with-statement
+            run_key = object()
+            approved_key = object()
+            mock_winreg.CreateKeyEx.side_effect = [run_key, approved_key]
 
             set_autostart(True)
 
-            mock_winreg.OpenKey.assert_called_once()
-            mock_winreg.SetValueEx.assert_called_once()
-            # First arg to SetValueEx: key, name, reserved, type, value
-            args, _ = mock_winreg.SetValueEx.call_args
-            assert args[1] == "EyeBreak"
-            assert args[3] == mock_winreg.REG_SZ
-            assert isinstance(args[4], str)
-            # The value should contain either pythonw.exe or sys.executable
-            assert len(args[4]) > 0
+            assert mock_winreg.CreateKeyEx.call_args_list == [
+                call(mock_winreg.HKEY_CURRENT_USER, APP_KEY, 0, mock_winreg.KEY_SET_VALUE),
+                call(
+                    mock_winreg.HKEY_CURRENT_USER,
+                    STARTUP_APPROVED_KEY,
+                    0,
+                    mock_winreg.KEY_SET_VALUE,
+                ),
+            ]
+            assert mock_winreg.SetValueEx.call_args_list == [
+                call(run_key, APP_NAME, 0, mock_winreg.REG_SZ, ANY),
+                call(
+                    approved_key,
+                    APP_NAME,
+                    0,
+                    mock_winreg.REG_BINARY,
+                    STARTUP_ENABLED_VALUE,
+                ),
+            ]
+            assert mock_winreg.CloseKey.call_args_list == [
+                call(approved_key),
+                call(run_key),
+            ]
 
-    def test_disable_deletes_from_run_key(self) -> None:
+    def test_disable_removes_run_and_startup_approved_entries(self) -> None:
         with patch("app.autostart.winreg") as mock_winreg:
+            run_key = object()
+            approved_key = object()
+            mock_winreg.CreateKeyEx.side_effect = [run_key, approved_key]
+
             set_autostart(False)
 
-            mock_winreg.DeleteValue.assert_called_once_with(
-                mock_winreg.OpenKey.return_value, "EyeBreak"
-            )
+            assert mock_winreg.DeleteValue.call_args_list == [
+                call(run_key, APP_NAME),
+                call(approved_key, APP_NAME),
+            ]
 
-    def test_disable_ignores_file_not_found(self) -> None:
+    def test_disable_ignores_missing_entries(self) -> None:
         with patch("app.autostart.winreg") as mock_winreg:
-            mock_winreg.DeleteValue.side_effect = FileNotFoundError
+            mock_winreg.DeleteValue.side_effect = [FileNotFoundError, FileNotFoundError]
 
-            set_autostart(False)  # should not raise
+            set_autostart(False)
 
-            mock_winreg.DeleteValue.assert_called_once()
+            assert mock_winreg.DeleteValue.call_count == 2
 
 
 class TestIsAutostartEnabled:
-    def test_returns_true_when_key_exists(self) -> None:
+    def test_returns_true_when_run_and_approval_entries_are_enabled(self) -> None:
         with patch("app.autostart.winreg") as mock_winreg:
-            # QueryValueEx returns (value, type) on success
-            mock_winreg.QueryValueEx.return_value = ("some_path", 1)
+            mock_winreg.OpenKey.side_effect = [object(), object()]
+            mock_winreg.QueryValueEx.side_effect = [
+                ("some_path", 1),
+                (STARTUP_ENABLED_VALUE, 1),
+            ]
 
-            result = is_autostart_enabled()
+            assert is_autostart_enabled() is True
 
-            assert result is True
+    def test_returns_false_when_startup_approved_is_disabled(self) -> None:
+        with patch("app.autostart.winreg") as mock_winreg:
+            mock_winreg.OpenKey.side_effect = [object(), object()]
+            mock_winreg.QueryValueEx.side_effect = [("some_path", 1), (b"\x03", 1)]
 
-    def test_returns_false_when_key_missing(self) -> None:
+            assert is_autostart_enabled() is False
+
+    def test_returns_false_when_run_entry_is_missing(self) -> None:
         with patch("app.autostart.winreg") as mock_winreg:
             mock_winreg.QueryValueEx.side_effect = FileNotFoundError
 
-            result = is_autostart_enabled()
-
-            assert result is False
-
-    def test_returns_false_on_os_error(self) -> None:
-        with patch("app.autostart.winreg") as mock_winreg:
-            mock_winreg.OpenKey.side_effect = OSError
-
-            result = is_autostart_enabled()
-
-            assert result is False
+            assert is_autostart_enabled() is False
 
 
 class TestGetTargetCommandSource:
     def test_includes_pythonw_when_available(self) -> None:
-        """In normal source mode, the command includes pythonw.exe."""
         with (
             patch("app.autostart.sys") as mock_sys,
             patch("app.autostart.Path.is_file") as mock_is_file,

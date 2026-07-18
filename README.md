@@ -18,6 +18,8 @@ EyeBreak 是一个面向 Windows 中文用户的护眼休息提醒工具。
 * 全屏检测：全屏应用运行时延后提醒，退出全屏后重新计时。
 * 系统托盘菜单，包含立即休息、暂停、恢复、设置、开关悬浮窗、开机自启和退出。
 * 开机自启开关，写入当前用户 Windows 注册表 `HKCU\...\Run`。
+* Autostart synchronizes the current-user Run entry with Windows StartupApproved status.
+* The floating countdown enabled state is restored on launch; an enabled docked panel is shown before normal edge auto-hide resumes.
 * When EyeBreak is already running, launching it again opens and focuses the existing session's Settings window instead of starting another timer or tray session.
 * On both manual launch and Windows autostart, a new countdown begins from the configured reminder interval rather than showing a reminder immediately.
 * 置顶提醒弹窗和休息倒计时。
