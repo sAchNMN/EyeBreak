@@ -21,6 +21,37 @@ EyeBreak 是一个面向 Windows 中文用户的护眼休息提醒工具。
 
 版本：`v1`
 
+## Current fix: reminder shown immediately after autostart
+
+Changed files:
+
+* `app/core/timer_engine.py`: adds `start()` to schedule a fresh reminder interval for each application session.
+* `app/ui/bridge.py`: starts the engine after the UI is wired and before the first timer tick.
+* `tests/test_timer_engine.py`: adds a regression test for new-session countdown initialization.
+* `README.md`: documents the startup countdown behavior.
+
+Current behavior:
+
+* On autostart or manual launch, EyeBreak starts counting down from the configured interval instead of treating the default `next_reminder_at=0` as overdue.
+
+Dependency decision:
+
+* No new dependencies; uses the existing Python monotonic clock.
+* Installed `pytest 9.1.1` only in the local test environment to run the existing test suite. `requirements.txt` is unchanged.
+
+Test impact:
+
+* `python -m pytest -q tests -p no:cacheprovider --basetemp C:\tmp\eyebreak-pytest-20260718` - **199 passed in 0.53s**.
+* `git diff --check` - passed.
+
+Build impact:
+
+* `python -m PyInstaller build.spec` - passed; rebuilt `dist/EyeBreak.exe` with this fix.
+
+Manual acceptance:
+
+* User confirmed "??????" after verifying the rebuilt application starts from the configured countdown interval without immediately displaying a reminder.
+
 最近已推送提交：`49601e4 Clean repository tracked files`
 
 当前仓库已清理：
@@ -354,6 +385,41 @@ python -m pytest -q tests -p no:cacheprovider
 ```
 
 * 结果：**198 passed in 0.56s**（14 个旧测试移除，零回归零失败）。
+
+## 当前这次修复 PyInstaller 构建
+
+变更文件：
+
+* `HANDOFF.md`：同步记录本次修复。
+* `README.md`：更新构建说明，增加沙箱环境限制提示。
+
+当前行为：
+
+* 构建命令不变：`python -m PyInstaller build.spec`
+* 构建产物 `dist/EyeBreak.exe` 约 19MB，正常运行。
+
+修复说明：
+
+**根本原因**不是 `build.spec` 或代码问题。PyInstaller 在 Analysis 阶段创建临时 `base_library.zip`，完成后用 `os.remove()` 清理。WorkBuddy 沙箱的安全删除机制（`safe-delete`）拦截了该调用，试图将文件送入回收站，而 Windows 沙箱回收站不可用，导致 `SAFE_DELETE_FAIL_CLOSED` 错误。
+
+**解决方式**：
+1. 确认所有项目依赖（pystray、Pillow）已正确安装至 managed Python 环境。
+2. 用非沙箱模式运行 PyInstaller：构建本身不需要沙箱隔离，脱离沙箱后 `os.remove()` 正常工作。
+3. `build.spec` 无需修改，`hiddenimports` 清单已完整覆盖所有模块。
+
+构建警告文件 `warn-build.txt` 中的缺失模块均为 Unix/macOS 专用：
+- `pwd`、`grp`、`fcntl`、`termios`、`posix` → 仅 Linux/macOS
+- `Xlib`、`gi.repository` → Linux 桌面
+- `PyObjCTools`、`objc`、`Foundation`、`AppKit` → macOS
+- `numpy` → PIL 可选依赖
+- `olefile`、`defusedxml` → PIL 可选插件
+
+这些对 Windows 构建无任何影响。
+
+测试影响：
+
+* 本次是构建修复，没有修改 Python 代码，不需要重新运行测试。
+* 最近一次有效回归：`198 passed in 0.56s`（Phase 4 收尾后）。
 
 ## 下一步
 

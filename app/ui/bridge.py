@@ -81,6 +81,7 @@ class EyeBreakBridge:
         self._build_floating()
         self._wire_events()
         self._build_tray()
+        self.engine.start()
         self._main_tick()  # start the 1-second tick loop
 
     def _build_floating(self) -> None:

@@ -26,6 +26,7 @@ from app.core.events import (
     Resumed,
     Tick,
     TimerStopped,
+    TimerStarted,
 )
 from app.core.state_machine import StateMachine, TimerState
 from app.core.timer_engine import TimerEngine, format_seconds
@@ -114,6 +115,23 @@ def test_format_seconds_over_minute() -> None:
 
 def test_format_seconds_clamps_negative() -> None:
     assert format_seconds(-1.0) == "00:00"
+
+# -- startup ---------------------------------------------------------
+
+
+def test_start_schedules_a_fresh_countdown_for_the_new_session(
+    bus: EventBus, engine: TimerEngine
+) -> None:
+    engine.state.paused_until = 250.0
+    engine.state.next_reminder_at = 0.0
+    events: list[TimerStarted] = []
+    bus.subscribe(TimerStarted, events.append)
+
+    engine.start(now=100.0)
+
+    assert engine.state.paused_until == 0.0
+    assert engine.state.next_reminder_at == 100.0 + 25 * 60
+    assert events == [TimerStarted()]
 
 
 # ── tick: normal flow ────────────────────────────────────────────

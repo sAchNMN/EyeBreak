@@ -114,6 +114,21 @@ class TimerEngine:
     def is_fullscreen(self) -> bool:
         return self._was_fullscreen
 
+    def start(self, now: float | None = None) -> None:
+        """Begin a new application-session countdown.
+
+        ``next_reminder_at`` uses the process-local monotonic clock, so it
+        cannot be restored across a previous application run or system boot.
+        Every launch therefore starts a fresh interval from the current time.
+        """
+        if now is None:
+            now = time.monotonic()
+        self._state.paused_until = 0.0
+        self._state.next_reminder_at = (
+            now + self._config.reminder_interval_minutes * 60
+        )
+        self._bus.publish(TimerStarted())
+
     # ── Main tick (called ~1/s from the UI main loop) ───────────
 
     def tick(self, now: float) -> None:
