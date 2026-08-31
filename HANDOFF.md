@@ -503,3 +503,191 @@ Tests and build:
 Manual acceptance:
 
 * User confirmed "??????": an enabled docked countdown is immediately visible after launch and EyeBreak is enabled under Windows Startup apps.
+
+## Current fix: floating countdown edge interaction
+
+Changed files:
+
+* `app/floating_countdown.py`: widens the docked tab from 10 to 16 pixels, delays edge hiding by 200 milliseconds, cancels pending hides when the pointer returns, and suppresses hiding during drag operations.
+* `tests/test_floating_countdown.py`: adds regression coverage for the reachable tab width, delayed hide scheduling, hide cancellation, drag protection, and resetting drag state when disabled.
+* `README.md`: documents the updated floating-countdown interaction and acceptance points.
+
+Current behavior:
+
+* A docked floating countdown leaves a 16-pixel tab visible at the screen edge.
+* Leaving the panel schedules hiding after 200 milliseconds instead of hiding immediately.
+* Re-entering the panel cancels the pending hide.
+* Dragging cannot trigger auto-hide; after release, the panel resumes normal docked or undocked behavior.
+* Disabling the floating window clears any active drag state so re-enabling it cannot leave auto-hide permanently disabled.
+
+Dependency decision:
+
+* No product dependencies added. The implementation uses the existing Tkinter `after` and `after_cancel` APIs.
+* `pytest` was installed only in the local Python 3.14 test environment because the default `python` executable has no pip or pytest; `requirements.txt` is unchanged.
+
+Test commands and results:
+
+* `py -m pytest -q tests\test_floating_countdown.py -p no:cacheprovider --basetemp=.tmp\pytest-floating-final` — **16 passed in 0.04s**.
+* `py -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest-final` — **212 passed in 0.40s**.
+* `git diff --check` — passed.
+
+Known limitations:
+
+* The 200-millisecond delay and 16-pixel tab width are fixed constants; they are intentionally not user settings until manual usage shows a real need.
+* Manual GUI acceptance has not been confirmed yet, so this milestone must not be pushed.
+
+## Current fix: floating countdown vertical layout
+
+Changed files:
+
+* `app/floating_countdown.py`: increases the floating window height from 64 to 96 pixels so the 16-pixel edge tab and the status/countdown content have separate space.
+* `tests/test_floating_countdown.py`: adds a real Tk layout regression test that checks the bottom-docked countdown receives its requested height and stays inside the content area.
+* `README.md`: documents the non-overlapping vertical layout and acceptance point.
+
+Current behavior:
+
+* The floating countdown content area has 80 pixels of height when the tab is placed at the top or bottom.
+* The status label and countdown label retain their requested sizes instead of being compressed into an overlapping layout.
+* The green edge tab does not cover the status text or countdown digits.
+
+Dependency decision:
+
+* No dependencies added; the regression test uses the existing Tkinter runtime.
+
+Test commands and results:
+
+* `py -m pytest -q tests\test_floating_countdown.py::test_bottom_layout_gives_countdown_text_enough_height -p no:cacheprovider --basetemp=.tmp\pytest-layout-green` — **1 passed in 0.13s**.
+* `py -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest-layout-final` — **213 passed in 0.43s**.
+* A real Tk diagnostic reported `content=80`, `status=23`, and `countdown=42/42` pixels for the bottom-docked layout.
+* `py -m compileall -q app main.py` — passed.
+* `git diff --check` — passed.
+
+Known limitations:
+
+* Manual visual acceptance on all four screen edges is still required; this change has not been pushed.
+
+## Current fix: shrink floating countdown without overlap
+
+Changed files:
+
+* `app/floating_countdown.py`: reduces the window from 188×96 to 188×84 pixels, separates the 16-pixel side tab width from the 10-pixel top/bottom tab height, reduces the countdown font from 20 to 18, and tightens vertical padding.
+* `tests/test_floating_countdown.py`: covers the separate vertical tab size and verifies real Tk top/bottom layouts keep the countdown at its requested height inside the content area.
+* `README.md`: documents the smaller floating-window dimensions and updated latest test count.
+
+Current behavior:
+
+* The floating countdown is smaller while keeping 6 pixels of vertical layout headroom under the current Tk font metrics.
+* Top and bottom docking use a thinner 10-pixel green tab; left and right docking keep a 16-pixel reachable tab.
+* The status text and countdown digits remain fully visible and do not overlap the green tab.
+
+Dependency decision:
+
+* No dependencies added; layout verification uses the existing Tkinter runtime.
+
+Test commands and results:
+
+* `py -m pytest -q tests\test_floating_countdown.py -p no:cacheprovider --basetemp=.tmp\pytest-small-final` — **18 passed in 0.15s**.
+* `py -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest-small-final` — **214 passed in 0.47s**.
+* `py -m compileall -q app main.py` — passed.
+* `git diff --check` — passed.
+
+Known limitations:
+
+* The 188×84 dimensions are validated against the current Windows/Tk font metrics; a different system font or scaling configuration still requires manual visual confirmation.
+* This milestone remains uncommitted and unpushed until user acceptance.
+
+## Current fix: directional floating countdown widths
+
+Changed files:
+
+* `app/floating_countdown.py`: uses a 220×84 window for top/bottom docking and a 144×84 window for left/right docking; keeps the existing 10-pixel top/bottom tab and 16-pixel side tab.
+* `tests/test_floating_countdown.py`: covers direction-based widths, all four real Tk layouts, and resizing only after drag release docks to a new edge.
+* `README.md`: documents the directional floating-window dimensions and acceptance point.
+
+Current behavior:
+
+* Top and bottom docking use the wider 220×84 layout so the status text and countdown remain comfortably readable.
+* Left and right docking use the narrower 144×84 layout to reduce the visual footprint along the screen sides.
+* While dragging, the current width remains stable; when the window is released onto another edge, it snaps to that edge's width and tab orientation.
+* Hidden positions and pointer hit testing use the active directional width, so the visible tab remains reachable and the full window does not overlap its own content.
+
+Dependency and build impact:
+
+* No product dependencies added; the implementation uses the existing Tkinter geometry and placement APIs.
+* `build.spec` and packaging inputs are unchanged; no executable rebuild was needed for this layout-only change.
+
+Test commands and results:
+
+* `py -m pytest -q tests\test_floating_countdown.py -p no:cacheprovider --basetemp=.tmp\pytest-directional-floating` — **22 passed**.
+* `py -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest-directional-final` — **218 passed in 0.65s**.
+* `py -m compileall -q app main.py` — passed.
+* `git diff --check` — passed.
+
+Known limitations:
+
+* The four-edge visual result still needs manual confirmation on the user's actual display scaling and taskbar configuration.
+* This milestone remains uncommitted and unpushed until the user confirms acceptance.
+
+## Current fix: side height and edge-anchored resizing
+
+Changed files:
+
+* `app/floating_countdown.py`: gives left/right docking a 144×72 window while keeping top/bottom at 220×84; uses the release mouse position when deciding the new edge and anchors the resized window to that edge.
+* `tests/test_floating_countdown.py`: adds regression coverage for the 72-pixel side height and for a stale window-coordinate scenario during top-to-right docking.
+* `README.md`: documents the side height and edge-anchored resize behavior.
+
+Root cause and current behavior:
+
+* The side layout needed 68 pixels for the current Tk font metrics, but retained 84 pixels, leaving 16 pixels of unused vertical space. The new 72-pixel height keeps 4 pixels of headroom.
+* Drag release previously ignored the release event and trusted the window manager's current top-left coordinate. When that coordinate lagged behind the mouse, resizing could be calculated from an old position and appear to move away from the target edge.
+* Release handling now derives the position from the mouse release point, clamps it using the active pre-resize dimensions, then recalculates the final position with the new dimensions. The target left/right screen boundary therefore remains fixed during the width shrink.
+
+Dependency and build impact:
+
+* No product dependencies added; the implementation uses existing Tkinter geometry and event APIs.
+* `build.spec` and packaging inputs are unchanged; no executable rebuild was needed for this layout-only change.
+
+Test commands and results:
+
+* `py -m pytest -q tests\test_floating_countdown.py -p no:cacheprovider --basetemp=.tmp\pytest-directional-regression-green2` — **23 passed in 0.29s**.
+* `py -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest-height-anchor-full` — **219 passed in 0.57s**.
+* Real Tk diagnostic: left/right `144×72`, content request height `68`; top/bottom `220×84`.
+* Real Tk top-to-right transition: final right boundary remained equal to the screen width after resizing.
+
+Known limitations:
+
+* Manual visual acceptance is still required on the user's actual DPI, multi-monitor, and taskbar configuration.
+* This milestone remains uncommitted and unpushed until the user confirms acceptance.
+
+## Current fix: horizontal floating countdown width
+
+Changed files:
+
+* `app/floating_countdown.py`: reduces the top/bottom dock width from 220 to 96 pixels while keeping the 84-pixel height; left/right remains 144×72.
+* `tests/test_floating_countdown.py`: locks the horizontal width to 96 pixels and keeps the real Tk four-edge layout coverage.
+* `README.md`: documents the final directional dimensions.
+
+Current behavior:
+
+* The longest current status text requests 78 pixels; the 96-pixel top/bottom window leaves 18 pixels of total horizontal headroom instead of the previous 142 pixels of empty width.
+* Top and bottom docking now use 96×84, with the 10-pixel green tab and countdown content still separated.
+* Left and right docking remain 144×72, with the 16-pixel reachable side tab.
+* Directional width/height switching and edge-anchored resize behavior remain unchanged.
+
+Dependency and build impact:
+
+* No product dependencies added; this is a single Tkinter geometry constant adjustment.
+* `build.spec` and packaging inputs are unchanged; no executable rebuild was needed for this layout-only change.
+
+Test commands and results:
+
+* `py -m pytest -q tests\test_floating_countdown.py -p no:cacheprovider --basetemp=.tmp\pytest-horizontal-width-green` — **23 passed in 0.32s**.
+* `py -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest-horizontal-width-full-final` — **219 passed in 0.67s**.
+* Real Tk diagnostic: top/bottom `96×84`, content request width `78`, content height `74`.
+* `py -m compileall -q app main.py` — passed.
+* `git diff --check` — passed.
+
+Known limitations:
+
+* Manual visual acceptance is still required on the user's actual DPI, multi-monitor, and taskbar configuration.
+* This milestone remains uncommitted and unpushed until the user confirms acceptance.
