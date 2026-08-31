@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 from dataclasses import dataclass
+from functools import lru_cache
 
 
 @dataclass(frozen=True)
@@ -10,6 +11,40 @@ class Rect:
     top: int
     right: int
     bottom: int
+
+
+@lru_cache(maxsize=1)
+def _get_win32_api():
+    import ctypes
+    from ctypes import wintypes
+
+    class RECT(ctypes.Structure):
+        _fields_ = [
+            ("left", wintypes.LONG),
+            ("top", wintypes.LONG),
+            ("right", wintypes.LONG),
+            ("bottom", wintypes.LONG),
+        ]
+
+    class MONITORINFO(ctypes.Structure):
+        _fields_ = [
+            ("cbSize", wintypes.DWORD),
+            ("rcMonitor", RECT),
+            ("rcWork", RECT),
+            ("dwFlags", wintypes.DWORD),
+        ]
+
+    user32 = ctypes.windll.user32
+    return (
+        user32.GetForegroundWindow,
+        user32.GetShellWindow,
+        user32.IsWindowVisible,
+        user32.GetWindowRect,
+        user32.MonitorFromWindow,
+        user32.GetMonitorInfoW,
+        RECT,
+        MONITORINFO,
+    )
 
 
 def window_covers_monitor(
@@ -31,41 +66,34 @@ def is_foreground_window_fullscreen() -> bool:
 
     try:
         import ctypes
-        from ctypes import wintypes
+        (
+            get_foreground_window,
+            get_shell_window,
+            is_window_visible,
+            get_window_rect,
+            monitor_from_window,
+            get_monitor_info,
+            rect_type,
+            monitor_info_type,
+        ) = _get_win32_api()
 
-        class RECT(ctypes.Structure):
-            _fields_ = [
-                ("left", wintypes.LONG),
-                ("top", wintypes.LONG),
-                ("right", wintypes.LONG),
-                ("bottom", wintypes.LONG),
-            ]
-
-        class MONITORINFO(ctypes.Structure):
-            _fields_ = [
-                ("cbSize", wintypes.DWORD),
-                ("rcMonitor", RECT),
-                ("rcWork", RECT),
-                ("dwFlags", wintypes.DWORD),
-            ]
-
-        hwnd = ctypes.windll.user32.GetForegroundWindow()
-        if not hwnd or hwnd == ctypes.windll.user32.GetShellWindow():
+        hwnd = get_foreground_window()
+        if not hwnd or hwnd == get_shell_window():
             return False
-        if not ctypes.windll.user32.IsWindowVisible(hwnd):
+        if not is_window_visible(hwnd):
             return False
 
-        window_rect = RECT()
-        if not ctypes.windll.user32.GetWindowRect(hwnd, ctypes.byref(window_rect)):
+        window_rect = rect_type()
+        if not get_window_rect(hwnd, ctypes.byref(window_rect)):
             return False
 
-        monitor = ctypes.windll.user32.MonitorFromWindow(hwnd, 2)
+        monitor = monitor_from_window(hwnd, 2)
         if not monitor:
             return False
 
-        monitor_info = MONITORINFO()
-        monitor_info.cbSize = ctypes.sizeof(MONITORINFO)
-        if not ctypes.windll.user32.GetMonitorInfoW(monitor, ctypes.byref(monitor_info)):
+        monitor_info = monitor_info_type()
+        monitor_info.cbSize = ctypes.sizeof(monitor_info_type)
+        if not get_monitor_info(monitor, ctypes.byref(monitor_info)):
             return False
 
         return window_covers_monitor(

@@ -65,6 +65,47 @@ python main.py
 
 首次运行时，EyeBreak 会在应用目录旁生成 `config.json`。这个文件属于本地运行配置，已被 Git 忽略。
 
+## 性能监测
+
+项目提供一个不依赖第三方包的 Windows 性能监测脚本，用于记录真实运行时的 CPU 和 RSS/工作集内存。脚本默认监测 10 分钟、每 5 秒采样一次，并把数据写入 `.tmp\performance.csv`。
+
+监测源码运行版本：
+
+```powershell
+py scripts\monitor_performance.py --duration 600 --interval 5 --output .tmp\source-performance.csv -- python main.py
+```
+
+监测 PyInstaller 版本时，当前构建是单文件 EXE，会先启动一个引导进程，再启动真正的应用子进程。因此不能直接把 `dist\EyeBreak.exe` 作为监测器的命令目标，否则可能只测到引导进程。请先启动 EXE，再找到同路径子进程的 PID，然后用 `--pid` 监测真实应用：
+
+```powershell
+$workdir = (Get-Location).Path
+$exePath = (Resolve-Path -LiteralPath 'dist\EyeBreak.exe').Path
+$launcher = Start-Process -FilePath $exePath -WorkingDirectory $workdir -PassThru
+try {
+    do {
+        $child = Get-CimInstance Win32_Process |
+            Where-Object { $_.ParentProcessId -eq $launcher.Id -and $_.ExecutablePath -eq $exePath } |
+            Select-Object -First 1
+        if (-not $child) { Start-Sleep -Milliseconds 200 }
+    } while (-not $child)
+    py scripts\monitor_performance.py --pid $child.ProcessId --duration 600 --interval 5 --output .tmp\exe-performance.csv
+}
+finally {
+    if ($child) { Stop-Process -Id $child.ProcessId -Force -ErrorAction SilentlyContinue }
+    if ($launcher) { Stop-Process -Id $launcher.Id -Force -ErrorAction SilentlyContinue }
+}
+```
+
+也可以监测已经运行的进程：
+
+```powershell
+py scripts\monitor_performance.py --pid 1234 --duration 600 --interval 5 --output .tmp\existing-process.csv
+```
+
+把 `1234` 换成目标进程的 PID。监测结束后脚本会输出 CPU 平均值、P95、峰值，以及内存初始值、最终值、峰值和变化量。按 `Ctrl+C` 提前停止时，已经采集的数据仍会保留在 CSV 中；脚本不会自动关闭被监测的 EyeBreak 进程。
+
+源码监测命令请使用 `python main.py`，不要写成 `py main.py`。Windows 的 `py.exe` 可能只是启动器，监测器拿到的 PID 可能不是实际运行 EyeBreak 的 Python 进程。EXE 监测则必须按上面的方式跟踪真实子进程。
+
 为了快速验收，可以临时把 `config.json` 改成短间隔：
 
 ```json
@@ -93,7 +134,7 @@ python main.py
 python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest
 ```
 
-最近一次结果：`220 passed in 0.69s`。
+最近一次结果：`227 passed in 0.72s`。
 
 ## 构建
 

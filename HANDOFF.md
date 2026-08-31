@@ -596,6 +596,83 @@ Known limitations:
 * The 188×84 dimensions are validated against the current Windows/Tk font metrics; a different system font or scaling configuration still requires manual visual confirmation.
 * This milestone remains uncommitted and unpushed until user acceptance.
 
+## Current tool: Windows CPU/RSS performance monitor
+
+Changed files:
+
+* `scripts/__init__.py`: marks the monitoring script directory as an importable test package.
+* `scripts/monitor_performance.py`: adds a standard-library-only Windows process monitor using `GetProcessTimes` and `GetProcessMemoryInfo`; supports an existing `--pid` or launching a command, writes flushed CSV samples, and prints CPU/RSS summary statistics.
+* `tests/test_monitor_performance.py`: covers CPU normalization, summary calculations, CSV preservation, and command-line separator handling.
+* `README.md`: documents source, EXE, and existing-PID monitoring commands.
+
+Current behavior:
+
+* The monitor defaults to 600 seconds and a 5-second interval; both are configurable.
+* CSV fields are `elapsed_seconds`, `cpu_percent`, and `rss_mb`.
+* The CPU percentage is normalized across logical CPUs, so 100% means the process is using all logical CPUs. RSS on Windows is measured through the process working set.
+* Samples are flushed as they arrive. Ctrl+C preserves already-written rows. A process started by the monitor is intentionally not closed automatically.
+
+Dependency and build impact:
+
+* No dependencies added; the monitor uses Python standard-library `ctypes`, `csv`, `argparse`, and `subprocess`.
+* EyeBreak install/run/build commands are unchanged. The monitor is a separate diagnostic script and is not bundled into `dist\\EyeBreak.exe`.
+
+Test commands and results:
+
+* `py -m pytest -q tests\\test_monitor_performance.py -p no:cacheprovider --basetemp=.tmp\\pytest-monitor-green2` — **4 passed in 0.04s**.
+* `py scripts\\monitor_performance.py --duration 0.4 --interval 0.1 --output .tmp\\monitor-source-smoke.csv -- py -c "import time; time.sleep(1)"` — passed; wrote 5 samples and summary.
+* `$exePath = (Resolve-Path -LiteralPath 'dist\\EyeBreak.exe').Path; $testProcess = Start-Process -FilePath $exePath -PassThru; try { py scripts\\monitor_performance.py --pid $testProcess.Id --duration 0.4 --interval 0.1 --output .tmp\\monitor-exe-smoke.csv } finally { if (-not $testProcess.HasExited) { Stop-Process -Id $testProcess.Id -Force } }` — passed; read 5 samples from the freshly built `dist\\EyeBreak.exe`.
+* `$sourcePath = (Get-Command python.exe).Source; $testProcess = Start-Process -FilePath $sourcePath -ArgumentList @('main.py') -WorkingDirectory (Get-Location).Path -PassThru; try { py scripts\\monitor_performance.py --pid $testProcess.Id --duration 0.4 --interval 0.1 --output .tmp\\monitor-source-direct-smoke.csv } finally { if (-not $testProcess.HasExited) { Stop-Process -Id $testProcess.Id -Force } }` — passed; read 5 samples from the direct `python.exe main.py` process.
+* `py -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\\pytest-monitor-final` — **227 passed in 0.72s**.
+* `py -m compileall -q app scripts main.py` — passed.
+* `git diff --check` — passed.
+
+Known limitations:
+
+* The monitor is Windows-only and measures working-set memory rather than every Windows memory metric such as private commit.
+* The short source/EXE runs are smoke tests, not the requested 10–30 minute performance measurements. Run the README commands for long-term comparison under identical conditions.
+* Manual GUI acceptance of EyeBreak remains pending; this milestone is uncommitted and unpushed.
+
+## Measurement correction: source command must target the real Python process
+
+The first user-run source measurement used `py main.py`. On Windows, `py.exe` can remain as a launcher process while the real `python.exe` runs the script, so the monitor's launched PID is not guaranteed to be the EyeBreak process. The resulting `.tmp\\source.csv` must not be used as a strict source-versus-EXE comparison. README now uses `python main.py`; for the single-file EXE, direct command mode can monitor the PyInstaller launcher instead of the real application child, so README documents the child-PID procedure. The two existing runs also used different config files (`config.json` has a 10-minute reminder interval; `dist\\config.json` has 25 minutes), so a strict comparison requires synchronizing those files and rerunning both versions.
+
+## 30-minute CPU/RSS benchmark with one-second sampling
+
+Scope and setup:
+
+* The user approved a temporary configuration sync so both builds used the same settings. The original `dist\config.json` was backed up to `.tmp\dist-config-backup-perf.json`, then the root `config.json` was copied to `dist\config.json`.
+* The source run used the actual managed Python interpreter resolved by `py -c "import sys; print(sys.executable)"`, started with `main.py`, and monitored PID 8316.
+* The first EXE run monitored the PyInstaller launcher PID and is invalid for application-memory comparison; `.tmp\exe-30m-1s.csv` is intentionally excluded. The valid rerun found launcher PID 1016 and monitored the real application child PID 19672 in `.tmp\exe-real-30m-1s.csv`.
+* Both valid monitors ran with `--duration 1800 --interval 1` and returned exit code 0. The elapsed time reached 1800 seconds. Windows scheduling produced 1777 source rows and 1778 real-EXE rows, with approximately one-second sampling intervals rather than a hard real-time guarantee.
+
+Measured results from the stable period after the first 60 seconds:
+
+| Target | CPU average | CPU P95 | CPU max | RSS range | RSS first → last | RSS delta |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Source Python | 0.0113% | 0.0959% | 0.9588% | 53.05–55.22 MB | 54.54 → 53.48 MB | -1.06 MB |
+| Real EXE child | 0.0084% | 0.0959% | 0.2928% | 54.73–57.20 MB | 56.02 → 55.05 MB | -0.97 MB |
+
+Interpretation:
+
+* Neither target showed a monotonic RSS increase during 30 minutes. The initial source RSS sample was taken before full Python/Tk initialization, so the stable-period values are the meaningful comparison.
+* Both targets stayed at effectively idle CPU usage under this idle test. This does not measure CPU usage while a reminder, break window, fullscreen detection, or user interaction is active.
+* The valid EXE result measures the real application child, not the approximately 8 MB PyInstaller launcher process. README now documents the child-PID procedure.
+
+Exact run and recovery commands:
+
+* `Copy-Item -LiteralPath 'dist\config.json' -Destination '.tmp\dist-config-backup-perf.json' -Force` followed by `Copy-Item -LiteralPath 'config.json' -Destination 'dist\config.json' -Force` — temporary sync completed.
+* Source monitor: `py scripts\monitor_performance.py --pid 8316 --duration 1800 --interval 1 --output .tmp\source-30m-1s.csv` — exit code 0; elapsed 1800.0002 seconds.
+* Valid EXE monitor: `py scripts\monitor_performance.py --pid 19672 --duration 1800 --interval 1 --output .tmp\exe-real-30m-1s.csv` — exit code 0; elapsed 1800.0001 seconds.
+* `Copy-Item -LiteralPath '.tmp\dist-config-backup-perf.json' -Destination 'dist\config.json' -Force` — restore completed; `dist\config.json` SHA-256 matches the backup (`0ABF56C6DB8C065B9B7ED456142003962B9059C01A31506A076ADFD34DE093D8`), and no `EyeBreak` process remained.
+* Both valid application error logs and monitor error logs were 0 bytes.
+
+Dependency and test impact:
+
+* No dependencies added or changed. This benchmark used the existing standard-library-only monitor.
+* The benchmark generated diagnostic files under `.tmp\`; the original `out\` contents were preserved.
+* Final verification completed after this handoff update; manual acceptance for this performance-optimization milestone is recorded below.
+
 ## Current fix: directional floating countdown widths
 
 Changed files:
@@ -658,6 +735,54 @@ Known limitations:
 
 * Manual visual acceptance is still required on the user's actual DPI, multi-monitor, and taskbar configuration.
 * This milestone remains uncommitted and unpushed until the user confirms acceptance.
+
+## Acceptance: performance optimization milestone
+
+* On 2026-09-01, the user confirmed: “功能都能够正常运行，验收通过”。
+* Manual acceptance for the performance optimization, monitoring, temporary configuration sync/restore, and verified runtime behavior is **passed**.
+* No commit or push was performed; the accepted changes remain in the working tree for the user to review and commit when ready.
+
+## Current optimization: reduce idle background CPU and allocation churn
+
+Changed files:
+
+* `app/idle.py`: caches the Win32 ctypes structure and API function references with a one-entry standard-library cache instead of rebuilding them on every timer tick.
+* `app/fullscreen.py`: caches the Win32 ctypes structures and API function references with the same one-entry cache; existing `False` fallbacks remain unchanged.
+* `app/ui/bridge.py`: skips Tk label updates while the floating countdown is hidden, using the existing `should_update_display()` contract.
+* `tests/test_idle.py`, `tests/test_fullscreen.py`, `tests/test_bridge.py`: add cache reuse and hidden-window refresh regression coverage.
+
+Current behavior:
+
+* Reminder timing, idle/fullscreen detection semantics, error fallbacks, and the one-second timer cadence are unchanged.
+* Hidden floating countdown windows no longer receive a per-second Tk `Label.configure()` call; showing the window still requests an immediate tick.
+
+Performance evidence:
+
+* Same 1,000-tick cProfile benchmark: `0.107s / 174,455 calls` before the change; `0.026s / 29,602 calls` after the change.
+* Same 1,000-call detector benchmark with tracemalloc: idle `73.57ms` → `21.74ms`, fullscreen `149.65ms` → `12.16ms`.
+* These are synthetic process-local measurements, not a Task Manager RSS measurement.
+
+Dependency and build impact:
+
+* No dependencies added; `functools.lru_cache` is Python standard library.
+* Install, run, packaging, and build commands are unchanged. The executable was rebuilt successfully as a packaging verification.
+
+Test commands and results:
+
+* `py -m pytest -q tests\\test_bridge.py::test_on_tick_updates_floating_label tests\\test_bridge.py::test_on_tick_skips_hidden_floating_window_update -p no:cacheprovider --basetemp=.tmp\\pytest-perf-green-bridge` — **2 passed**.
+* `py -m pytest -q tests\\test_idle.py::test_get_idle_seconds_windows_calls_api tests\\test_idle.py::test_get_idle_seconds_reuses_win32_api_cache -p no:cacheprovider --basetemp=.tmp\\pytest-perf-green-idle` — **2 passed**.
+* `py -m pytest -q tests\\test_fullscreen.py::test_is_foreground_window_fullscreen_returns_false_outside_windows tests\\test_fullscreen.py::test_fullscreen_detector_reuses_win32_api_cache -p no:cacheprovider --basetemp=.tmp\\pytest-perf-green-fullscreen` — **2 passed**.
+* `py -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\\pytest-perf-final` — **223 passed in 0.65s**.
+* `py -m compileall -q app main.py` — passed.
+* `py -m PyInstaller build.spec` — passed; rebuilt `dist\\EyeBreak.exe`.
+* `git diff --check` — passed.
+
+Known limitations:
+
+* The performance benchmark is repeatable but synthetic; real-world memory should still be checked with the built app in Task Manager over several minutes.
+* PyInstaller emitted an existing third-party `pystray` `SyntaxWarning` in `pystray\\_util\\gtk.py`; the build still completed successfully and this change does not touch that dependency.
+* Manual GUI acceptance on the user's actual DPI, multi-monitor, and taskbar configuration remains required.
+* This milestone remains uncommitted and unpushed until user acceptance.
 
 ## Current fix: horizontal floating countdown width
 

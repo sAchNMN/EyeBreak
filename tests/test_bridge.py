@@ -46,6 +46,7 @@ class _StubFloating:
     def __init__(self) -> None:
         self.status_label = MagicMock()
         self.set_enabled = MagicMock()
+        self.should_update_display = MagicMock(return_value=True)
         self.placement = MagicMock(return_value=("right", 100, 200))
 
 
@@ -119,6 +120,15 @@ def test_on_tick_no_floating_label(bridge) -> None:
     bridge.floating_label = None
     event = Tick(remaining_seconds=0.0, display_text="00:00", display_color="#fff")
     bridge._on_tick(event)  # should not crash
+
+
+def test_on_tick_skips_hidden_floating_window_update(bridge) -> None:
+    bridge.floating.should_update_display.return_value = False
+    event = Tick(remaining_seconds=120.0, display_text="02:00", display_color="#f9fafb")
+
+    bridge._on_tick(event)
+
+    bridge.floating_label.configure.assert_not_called()
 
 
 # ── Reminder lifecycle ─────────────────────────────────────────────

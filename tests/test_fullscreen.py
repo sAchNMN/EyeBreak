@@ -19,3 +19,16 @@ def test_is_foreground_window_fullscreen_returns_false_outside_windows(monkeypat
     monkeypatch.setattr(sys, "platform", "linux")
 
     assert is_foreground_window_fullscreen() is False
+
+
+def test_fullscreen_detector_reuses_win32_api_cache() -> None:
+    if sys.platform != "win32":
+        return  # skip on non-Windows; no API available
+
+    import app.fullscreen as fullscreen
+
+    fullscreen._get_win32_api.cache_clear()
+    first = fullscreen._get_win32_api()
+    second = fullscreen._get_win32_api()
+
+    assert first is second

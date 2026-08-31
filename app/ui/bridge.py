@@ -159,6 +159,8 @@ class EyeBreakBridge:
     def _on_tick(self, event: Tick) -> None:
         if not self.floating_label or not self.floating:
             return
+        if not self.floating.should_update_display():
+            return
         self.floating_label.configure(text=event.display_text, fg=event.display_color)
 
     # ── Reminder lifecycle ───────────────────────────────────────
