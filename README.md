@@ -12,6 +12,7 @@ EyeBreak 是一个面向 Windows 中文用户的护眼休息提醒工具。
 * 悬浮倒计时可拖动，可记住上次位置。
 * 悬浮倒计时贴到屏幕边缘后自动隐藏，鼠标碰到后显示。
 * 贴边悬浮窗保留 16 像素可触达窄条，鼠标离开后延迟 200 毫秒再隐藏。
+* 程序启动或通过托盘重新开启时，若悬浮窗已贴边且鼠标不在窗口内，会在一次 200 毫秒检查后自动收缩为窄条。
 * 拖动悬浮窗时不会被自动隐藏，释放后再恢复贴边隐藏逻辑。
 * 悬浮倒计时内容区有足够垂直空间，状态文字、倒计时数字和绿色贴边条不会互相遮挡。
 * 悬浮窗按贴边方向自适应尺寸：上下贴边为 96×84 像素，左右贴边为 144×72 像素；上下贴边条为 10 像素，左右窄条为 16 像素。
@@ -23,7 +24,7 @@ EyeBreak 是一个面向 Windows 中文用户的护眼休息提醒工具。
 * 系统托盘菜单，包含立即休息、暂停、恢复、设置、开关悬浮窗、开机自启和退出。
 * 开机自启开关，写入当前用户 Windows 注册表 `HKCU\...\Run`。
 * Autostart synchronizes the current-user Run entry with Windows StartupApproved status.
-* The floating countdown enabled state is restored on launch; an enabled docked panel is shown before normal edge auto-hide resumes.
+* 悬浮倒计时启用状态会在启动时恢复；已贴边的悬浮窗显示后会自动恢复贴边隐藏。
 * When EyeBreak is already running, launching it again opens and focuses the existing session's Settings window instead of starting another timer or tray session.
 * On both manual launch and Windows autostart, a new countdown begins from the configured reminder interval rather than showing a reminder immediately.
 * 置顶提醒弹窗和休息倒计时。
@@ -92,7 +93,7 @@ python main.py
 python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest
 ```
 
-最近一次结果：`219 passed in 0.59s`。
+最近一次结果：`220 passed in 0.69s`。
 
 ## 构建
 
@@ -116,11 +117,12 @@ python -m PyInstaller build.spec
 
 ### 悬浮倒计时
 
-* 启动后，屏幕边缘只露出窄条。
+* 启动后，若悬浮窗已贴边且鼠标不在窗口内，屏幕边缘只露出窄条。
 * 鼠标移动到窄条上，倒计时面板显示并立即刷新。
 * 把面板拖离边缘后，面板完整显示，不再自动隐藏。
 * 把面板拖到左、右、上、下任意边缘后，面板贴边。
 * 贴边后，鼠标离开面板，面板自动隐藏，只保留窄条。
+* 通过托盘重新开启已贴边的悬浮窗后，鼠标不在窗口内时会自动隐藏，只保留窄条。
 * 窄条宽度足够鼠标稳定触达，鼠标短暂离开时不会立即收起。
 * 拖动悬浮窗时面板保持显示，释放后按新的位置或边缘状态工作。
 * 上、下贴边时窗口为 96×84 像素；左、右贴边时窗口为 144×72 像素。

@@ -691,3 +691,34 @@ Known limitations:
 
 * Manual visual acceptance is still required on the user's actual DPI, multi-monitor, and taskbar configuration.
 * This milestone remains uncommitted and unpushed until the user confirms acceptance.
+
+## Current fix: auto-hide docked window after opening
+
+Changed files:
+
+* `app/floating_countdown.py`: after enabling/reopening the floating window, schedules the existing one-shot 200 ms pointer-outside check so docked windows collapse without requiring a prior mouse-enter/leave cycle.
+* `tests/test_floating_countdown.py`: adds regression coverage proving that enabling a docked window schedules the existing hide callback.
+* `README.md`: documents automatic collapse after startup and tray reopening.
+
+Root cause and current behavior:
+
+* Startup and tray re-enable paths made a docked window visible, but did not schedule a hide check. Hiding therefore depended on a later `<Leave>` event, which never occurred if the pointer had not first entered the window.
+* `set_enabled(True)` now reuses `schedule_hide()`. Tkinter performs one delayed pointer check; if the pointer is outside, the existing `hide()` path moves the window to its reachable edge tab. If the pointer is inside, the check exits and the existing `<Leave>` event handles later hiding. Undocked windows and active drags remain unaffected.
+
+Dependency and build impact:
+
+* No new dependencies; the fix uses the existing Tkinter `after()` scheduling and pointer hit-test logic.
+* `build.spec` and packaging inputs are unchanged; no executable rebuild was needed for this code-only behavior fix.
+
+Test commands and results:
+
+* `python -m pytest -q tests/test_floating_countdown.py -k enabling_docked_window_schedules_initial_hide_check -p no:cacheprovider --basetemp=.tmp\pytest-floating-red` — could not start because the active `python` environment has no `pytest` module.
+* `py -m pytest -q tests/test_floating_countdown.py -k enabling_docked_window_schedules_initial_hide_check -p no:cacheprovider --basetemp=.tmp\pytest-floating-red` — **failed as expected before the fix**: 1 failed, 23 deselected.
+* `py -m pytest -q tests/test_floating_countdown.py -k "enabling_docked_window_schedules_initial_hide_check or schedule_hide or show_cancels_pending_hide" -p no:cacheprovider --basetemp=.tmp\pytest-floating-green` — **4 passed**.
+* `py -m pytest -q tests/test_floating_countdown.py -p no:cacheprovider --basetemp=.tmp\pytest-floating-all` — **24 passed in 0.33s**.
+* `py -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest-all` — **220 passed in 0.69s**.
+
+Known limitations:
+
+* Manual visual acceptance is still required on the user's actual DPI, multi-monitor, and taskbar configuration.
+* This milestone remains uncommitted and unpushed until the user confirms acceptance.

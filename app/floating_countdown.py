@@ -225,6 +225,7 @@ class FloatingCountdownWindow:
 
         self.root.deiconify()
         self.show()
+        self.schedule_hide()
     def set_paused(self, is_paused: bool) -> None:
         if not self.status_label:
             return

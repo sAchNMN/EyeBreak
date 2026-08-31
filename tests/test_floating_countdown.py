@@ -325,6 +325,29 @@ def test_show_cancels_pending_hide() -> None:
     assert window._hide_job is None
 
 
+def test_enabling_docked_window_schedules_initial_hide_check() -> None:
+    from unittest.mock import MagicMock
+
+    from app.floating_countdown import FloatingCountdownWindow
+
+    window = FloatingCountdownWindow.__new__(FloatingCountdownWindow)
+    window.root = MagicMock()
+    window.root.after.return_value = "hide-job"
+    window._edge = "right"
+    window._is_enabled = False
+    window._is_hidden = True
+    window._is_dragging = False
+    window._hide_job = None
+    window._on_show = None
+    window._place_tab_for_edge = MagicMock()
+    window._visible_position = MagicMock(return_value=(1, 2))
+    window._move_to_position = MagicMock()
+
+    window.set_enabled(True)
+
+    window.root.after.assert_called_once_with(200, window._hide_if_pointer_outside)
+
+
 def test_schedule_hide_does_nothing_while_dragging() -> None:
     from unittest.mock import MagicMock
 
