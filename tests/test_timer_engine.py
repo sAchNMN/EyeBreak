@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
+from datetime import date
 
 import pytest
 
@@ -28,6 +29,8 @@ from app.core.events import (
     Tick,
     TimerStopped,
     TimerStarted,
+    TodayPauseEnded,
+    TodayPauseStarted,
 )
 from app.core.state_machine import StateMachine, TimerState
 from app.core.timer_engine import TimerEngine, format_seconds
@@ -428,6 +431,72 @@ def test_break_now_noop_when_already_showing(
     engine.break_now()
 
     assert len(events) == 0  # no duplicate trigger
+
+
+def test_pause_today_suppresses_automatic_reminders(
+    bus: EventBus, engine: TimerEngine
+) -> None:
+    engine._today_provider = lambda: date(2026, 9, 2)
+    engine.state.next_reminder_at = 0.0
+    events: list = []
+    bus.subscribe(TodayPauseStarted, events.append)
+    ticks: list[Tick] = []
+    bus.subscribe(Tick, ticks.append)
+
+    engine.pause_today()
+    engine.tick(now=101.0)
+
+    assert engine.is_today_paused is True
+    assert engine.state.today_pause_date == "2026-09-02"
+    assert engine.current_state is TimerState.PAUSED
+    assert events == [TodayPauseStarted()]
+    assert ticks[-1].remaining_seconds == -1.0
+    assert ticks[-1].display_text == "--:--"
+
+
+def test_resume_ends_today_pause(bus: EventBus, engine: TimerEngine) -> None:
+    engine._today_provider = lambda: date(2026, 9, 2)
+    engine.pause_today()
+    events: list[TodayPauseEnded] = []
+    bus.subscribe(TodayPauseEnded, events.append)
+
+    engine.resume()
+
+    assert engine.state.today_pause_date is None
+    assert engine.current_state is TimerState.RUNNING
+    assert events == [TodayPauseEnded()]
+
+
+def test_stale_today_pause_recovers_at_new_local_date(
+    bus: EventBus, engine: TimerEngine, monkeypatch
+) -> None:
+    engine._today_provider = lambda: date(2026, 9, 3)
+    engine.state.today_pause_date = "2026-09-02"
+    monkeypatch.setattr(time, "monotonic", lambda: 100.0)
+    events: list[TodayPauseEnded] = []
+    bus.subscribe(TodayPauseEnded, events.append)
+
+    engine.tick(now=100.0)
+
+    assert engine.state.today_pause_date is None
+    assert engine.current_state is TimerState.RUNNING
+    assert engine.state.next_reminder_at == 100.0 + 25 * 60
+    assert events == [TodayPauseEnded()]
+
+
+def test_break_now_remains_available_during_today_pause(
+    bus: EventBus, engine: TimerEngine, monkeypatch
+) -> None:
+    engine._today_provider = lambda: date(2026, 9, 2)
+    monkeypatch.setattr(time, "monotonic", lambda: 100.0)
+    engine.pause_today()
+    events: list[ReminderTriggered] = []
+    bus.subscribe(ReminderTriggered, events.append)
+
+    engine.break_now()
+
+    assert engine.current_state is TimerState.SHOWING_REMINDER
+    assert events[0].source == "manual"
 
 
 # ── skip_reminder ────────────────────────────────────────────────

@@ -72,6 +72,16 @@ class ReminderDismissed:
     source: ReminderSource = "scheduled"
 
 
+@dataclass(frozen=True)
+class TodayPauseStarted:
+    """Published when automatic reminders are muted for the local day."""
+
+
+@dataclass(frozen=True)
+class TodayPauseEnded:
+    """Published when today's automatic-reminder mute is cleared."""
+
+
 # ── State change events ─────────────────────────────────────────
 
 

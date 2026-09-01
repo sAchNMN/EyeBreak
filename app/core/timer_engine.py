@@ -15,6 +15,8 @@ Zero imports from tkinter, pystray, or any UI/platform concrete module.
 from __future__ import annotations
 
 import time
+from datetime import date
+from typing import Callable
 
 from app.core.event_bus import EventBus
 from app.core.events import (
@@ -33,6 +35,8 @@ from app.core.events import (
     Tick,
     TimerStarted,
     TimerStopped,
+    TodayPauseEnded,
+    TodayPauseStarted,
 )
 from app.core.state_machine import StateMachine, TimerState
 from app.platform.protocols import (
@@ -77,6 +81,7 @@ class TimerEngine:
         autostart_manager: AutostartManager,
         config,
         state,
+        today_provider: Callable[[], date] | None = None,
     ) -> None:
         self._bus = bus
         self._sm = state_machine
@@ -85,6 +90,7 @@ class TimerEngine:
         self._autostart_manager = autostart_manager
         self._config = config
         self._state = state
+        self._today_provider = today_provider or date.today
 
         # Internal state tracking for idle/fullscreen edge transitions.
         self._was_idle = False
@@ -117,6 +123,10 @@ class TimerEngine:
     def is_fullscreen(self) -> bool:
         return self._was_fullscreen
 
+    @property
+    def is_today_paused(self) -> bool:
+        return self._state.today_pause_date == self._today_iso()
+
     def start(self, now: float | None = None) -> None:
         """Begin a new application-session countdown.
 
@@ -127,9 +137,18 @@ class TimerEngine:
         if now is None:
             now = time.monotonic()
         self._state.paused_until = 0.0
-        self._state.next_reminder_at = (
-            now + self._config.reminder_interval_minutes * 60
-        )
+        if self._state.today_pause_date is not None:
+            if self.is_today_paused:
+                self._sm.transition_to(TimerState.PAUSED)
+            else:
+                self._state.today_pause_date = None
+                self._state.next_reminder_at = (
+                    now + self._config.reminder_interval_minutes * 60
+                )
+        else:
+            self._state.next_reminder_at = (
+                now + self._config.reminder_interval_minutes * 60
+            )
         self._bus.publish(TimerStarted())
 
     # ── Main tick (called ~1/s from the UI main loop) ───────────
@@ -141,6 +160,11 @@ class TimerEngine:
         This is the single entry point for periodic updates.
         """
         if self._sm.is_terminal:
+            return
+
+        # Today's mute suppresses all automatic checks until local midnight.
+        if self._sync_today_pause():
+            self._bus.publish(self._make_tick(now))
             return
 
         # 1. Pause takes priority over everything.
@@ -190,10 +214,23 @@ class TimerEngine:
 
     def resume(self) -> None:
         """Resume from paused state."""
+        had_today_pause = self._state.today_pause_date is not None
+        self._state.today_pause_date = None
         self._state.paused_until = 0.0
         self._schedule_next_reminder()
         self._sm.transition_to(TimerState.RUNNING)
+        if had_today_pause:
+            self._bus.publish(TodayPauseEnded())
         self._bus.publish(Resumed())
+
+    def pause_today(self) -> None:
+        """Mute automatic reminders until the next local calendar day."""
+        if self._sm.is_terminal:
+            return
+        self._state.paused_until = 0.0
+        self._state.today_pause_date = self._today_iso()
+        self._sm.transition_to(TimerState.PAUSED)
+        self._bus.publish(TodayPauseStarted())
 
     def break_now(self) -> None:
         """Skip directly to a break reminder, bypassing idle/fullscreen suppression.
@@ -316,6 +353,21 @@ class TimerEngine:
 
         return is_idle
 
+    def _sync_today_pause(self) -> bool:
+        marker = self._state.today_pause_date
+        if marker is None:
+            return False
+        if marker == self._today_iso():
+            self._safe_transition(TimerState.PAUSED)
+            return True
+
+        self._state.today_pause_date = None
+        self._state.paused_until = 0.0
+        self._schedule_next_reminder()
+        self._safe_transition(TimerState.RUNNING)
+        self._bus.publish(TodayPauseEnded())
+        return False
+
     def _check_fullscreen(self) -> bool:
         """Check fullscreen state, manage transitions, and publish events.
 
@@ -372,6 +424,8 @@ class TimerEngine:
 
     def _make_tick(self, now: float) -> Tick:
         """Build a Tick event from the current state snapshot."""
+        if self.is_today_paused:
+            return Tick(-1.0, "--:--", "#9ca3af")
         if self._was_idle:
             return Tick(-1.0, "--:--", "#9ca3af")
         if self._was_fullscreen:
@@ -381,3 +435,6 @@ class TimerEngine:
             return Tick(remaining, format_seconds(remaining), "#fbbf24")
         remaining = max(0.0, self._state.next_reminder_at - now)
         return Tick(remaining, format_seconds(remaining), "#f9fafb")
+
+    def _today_iso(self) -> str:
+        return self._today_provider().isoformat()

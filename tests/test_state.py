@@ -79,3 +79,25 @@ def test_save_app_state_ignores_write_failure(monkeypatch) -> None:
     monkeypatch.setattr("pathlib.Path.write_text", raise_permission_error)
 
     save_app_state(AppState())
+
+
+def test_today_pause_date_survives_restart_on_same_date(tmp_path) -> None:
+    state_path = tmp_path / "state.json"
+    save_app_state(AppState(today_pause_date="2026-09-02"), state_path)
+
+    assert load_app_state(state_path).today_pause_date == "2026-09-02"
+
+
+def test_load_app_state_rejects_non_iso_today_pause_date(tmp_path) -> None:
+    state_path = tmp_path / "state.json"
+    state_path.write_text(
+        json.dumps(
+            {
+                "today_pause_date": "09/02/2026",
+                "floating_countdown": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert load_app_state(state_path).today_pause_date is None

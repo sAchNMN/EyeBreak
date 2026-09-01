@@ -26,6 +26,8 @@ from app.core.events import (
     ReminderDismissed,
     ReminderTriggered,
     Resumed,
+    TodayPauseEnded,
+    TodayPauseStarted,
     Tick,
     TimerStopped,
 )
@@ -107,6 +109,7 @@ class EyeBreakBridge:
                 lambda: self.engine.pause(minutes)
             ),
             on_resume=lambda: self._ui_thread(self.engine.resume),
+            on_pause_today=lambda: self._ui_thread(self.engine.pause_today),
             on_open_settings=lambda: self._ui_thread(self._open_settings),
             on_toggle_floating=lambda: self._ui_thread(
                 self.engine.toggle_floating_countdown
@@ -134,6 +137,12 @@ class EyeBreakBridge:
         )
         self._unsubs.append(self.bus.subscribe(Paused, self._on_paused))
         self._unsubs.append(self.bus.subscribe(Resumed, self._on_resumed))
+        self._unsubs.append(
+            self.bus.subscribe(TodayPauseStarted, self._on_today_pause_started)
+        )
+        self._unsubs.append(
+            self.bus.subscribe(TodayPauseEnded, self._on_today_pause_ended)
+        )
         self._unsubs.append(self.bus.subscribe(IdleDetected, self._on_idle_detected))
         self._unsubs.append(self.bus.subscribe(IdleEnded, self._on_idle_ended))
         self._unsubs.append(
@@ -176,6 +185,7 @@ class EyeBreakBridge:
             on_exit=lambda: self.engine.request_exit(),
             master=self.root,
             on_complete=self.engine.complete_reminder,
+            on_pause_today=self.engine.pause_today,
         ).show()
 
     def _on_reminder_dismissed(self, event: ReminderDismissed) -> None:
@@ -191,6 +201,12 @@ class EyeBreakBridge:
         self._set_status("暂停中", "#fbbf24")
 
     def _on_resumed(self, event: Resumed) -> None:
+        self._set_status("下次护眼提醒", "#a7f3d0")
+
+    def _on_today_pause_started(self, event: TodayPauseStarted) -> None:
+        self._set_status("今日免打扰", "#9ca3af")
+
+    def _on_today_pause_ended(self, event: TodayPauseEnded) -> None:
         self._set_status("下次护眼提醒", "#a7f3d0")
 
     def _on_idle_detected(self, event: IdleDetected) -> None:

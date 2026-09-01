@@ -47,3 +47,14 @@ def test_quick_pause_calls_callback_with_selected_minutes_and_closes() -> None:
 
     assert [call.args[0] for call in window.on_pause.call_args_list] == [5, 15, 30]
     assert window.root.destroy.call_count == 3
+
+
+def test_today_pause_calls_callback_and_closes() -> None:
+    window = ReminderWindow.__new__(ReminderWindow)
+    window.on_pause_today = MagicMock()
+    window.root = MagicMock()
+
+    window._pause_today()
+
+    window.on_pause_today.assert_called_once_with()
+    window.root.destroy.assert_called_once_with()

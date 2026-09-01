@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 import logging
+from datetime import date
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -23,6 +24,7 @@ class AppState:
     floating_countdown_edge: str | None = "right"
     floating_countdown_x: int = 0
     floating_countdown_y: int | None = None
+    today_pause_date: str | None = None
 
 
 def load_app_state(path: Path = APP_STATE_PATH) -> AppState:
@@ -35,7 +37,7 @@ def load_app_state(path: Path = APP_STATE_PATH) -> AppState:
 
     floating_state = raw_state.get("floating_countdown")
     if not isinstance(floating_state, dict):
-        return AppState()
+        floating_state = {}
 
     return AppState(
         floating_countdown_enabled=_bool_value(
@@ -44,6 +46,7 @@ def load_app_state(path: Path = APP_STATE_PATH) -> AppState:
         floating_countdown_edge=_floating_edge(floating_state.get("edge")),
         floating_countdown_x=_int_value(floating_state.get("x"), 0),
         floating_countdown_y=_optional_int_value(floating_state.get("y")),
+        today_pause_date=_date_value(raw_state.get("today_pause_date")),
     )
 
 
@@ -56,6 +59,9 @@ def save_app_state(state: AppState, path: Path = APP_STATE_PATH) -> None:
             "y": state.floating_countdown_y,
         }
     }
+    today_pause_date = _date_value(state.today_pause_date)
+    if today_pause_date is not None:
+        payload["today_pause_date"] = today_pause_date
     try:
         atomic_write_json(path, payload)
     except OSError:
@@ -87,3 +93,13 @@ def _optional_int_value(value: Any) -> int | None:
     if value is None:
         return None
     return _int_value(value, 0)
+
+
+def _date_value(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        parsed = date.fromisoformat(value)
+    except ValueError:
+        return None
+    return value if parsed.isoformat() == value else None

@@ -25,6 +25,8 @@ from app.core.events import (
     ReminderTriggered,
     Resumed,
     Tick,
+    TodayPauseEnded,
+    TodayPauseStarted,
     TimerStopped,
 )
 from app.core.state_machine import TimerState, StateMachine
@@ -148,6 +150,7 @@ def test_on_reminder_triggered_opens_window(mock_rw, bridge, root) -> None:
         on_pause=mock_rw.call_args.kwargs.get("on_pause"),
         on_complete=bridge.engine.complete_reminder,
         on_exit=mock_rw.call_args.kwargs.get("on_exit"),
+        on_pause_today=bridge.engine.pause_today,
         master=root,
     )
     mock_rw.return_value.show.assert_called_once()
@@ -175,6 +178,8 @@ def test_on_reminder_dismissed_is_noop(bridge) -> None:
         ("_on_idle_ended", IdleEnded, {}, "下次护眼提醒", "#a7f3d0"),
         ("_on_fullscreen_detected", FullscreenDetected, {}, "全屏中", "#60a5fa"),
         ("_on_fullscreen_ended", FullscreenEnded, {}, "下次护眼提醒", "#a7f3d0"),
+        ("_on_today_pause_started", TodayPauseStarted, {}, "今日免打扰", "#9ca3af"),
+        ("_on_today_pause_ended", TodayPauseEnded, {}, "下次护眼提醒", "#a7f3d0"),
     ],
 )
 def test_status_handlers(

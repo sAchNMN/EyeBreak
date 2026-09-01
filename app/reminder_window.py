@@ -20,6 +20,7 @@ class ReminderWindow:
         on_exit: Callable[[], None],
         master: tk.Tk | None = None,
         on_complete: Callable[[], None] | None = None,
+        on_pause_today: Callable[[], None] | None = None,
     ) -> None:
         self.duration_seconds = duration_seconds
         self.remaining_seconds = duration_seconds
@@ -28,6 +29,7 @@ class ReminderWindow:
         self.on_pause = on_pause
         self.on_exit = on_exit
         self.on_complete = on_complete or on_skip
+        self.on_pause_today = on_pause_today or (lambda: None)
         self.master = master
         self.root = tk.Toplevel(master) if master else tk.Tk()
         self._build_window()
@@ -42,12 +44,12 @@ class ReminderWindow:
     def _build_window(self) -> None:
         self.root.title("EyeBreak")
         apply_window_icon(self.root)
-        self.root.geometry("460x360")
+        self.root.geometry("460x390")
         self.root.resizable(False, False)
         self.root.configure(bg="#f5f7fb")
         self.root.attributes("-topmost", True)
         self.root.protocol("WM_DELETE_WINDOW", self._skip)
-        self._center_window(460, 360)
+        self._center_window(460, 390)
 
         title = tk.Label(
             self.root,
@@ -106,6 +108,9 @@ class ReminderWindow:
         button_frame = tk.Frame(self.root, bg="#f5f7fb")
         button_frame.pack()
         self._button(button_frame, "跳过本次", self._skip).pack(side=tk.LEFT, padx=6)
+        self._button(
+            button_frame, "今天不再提醒", self._pause_today
+        ).pack(side=tk.LEFT, padx=6)
         self._button(button_frame, "退出", self._exit).pack(side=tk.LEFT, padx=6)
 
     def _button(
@@ -151,6 +156,10 @@ class ReminderWindow:
 
     def _exit(self) -> None:
         self.on_exit()
+        self.root.destroy()
+
+    def _pause_today(self) -> None:
+        self.on_pause_today()
         self.root.destroy()
 
     def _adjust_pause_minutes(self, event: tk.Event) -> str:
