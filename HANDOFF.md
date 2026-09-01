@@ -736,6 +736,120 @@ Known limitations:
 * Manual visual acceptance is still required on the user's actual DPI, multi-monitor, and taskbar configuration.
 * This milestone remains uncommitted and unpushed until the user confirms acceptance.
 
+## Current implementation: v1.2 eye-break flow
+
+Changed files:
+
+* `app/persistence.py`: 新增同目录临时文件、刷新、`os.replace()` 原子 JSON 保存，以及可选 `.bak` 恢复读取。
+* `app/config.py`, `app/settings_window.py`: 集中校验有限数值和配置范围；设置窗口显示具体错误与本地统计。
+* `app/state.py`, `app/paths.py`: 状态复用原子保存，新增按本地 ISO 日期持久化的今日免打扰标记和 `stats.json` 路径。
+* `app/core/events.py`, `app/core/event_bus.py`, `app/core/timer_engine.py`: 区分计划/手动提醒来源、自然完成/主动跳过，并实现今日免打扰及跨午夜恢复。
+* `app/reminder_window.py`, `app/tray.py`, `app/ui/bridge.py`: 增加可见暂停调节、5/15/30 分钟快捷暂停、今日免打扰入口和统计桥接。
+* `app/stats.py`: 新增仅基于应用领域事件的本地统计追踪，不读取全局键鼠、摄像头或前台窗口活动。
+* `tests/test_persistence.py`, `tests/test_stats.py`, `tests/test_reminder_window.py` 及既有相关测试：覆盖新行为和回归。
+* `README.md`, `.gitignore`: 同步用户可见行为、运行数据和验证结果。
+
+Current behavior:
+
+* 配置范围为提醒间隔 `0 < 分钟 <= 1440`、休息时长 `1–3600` 秒、默认暂停 `1–120` 分钟、离开检测 `0–1440` 分钟；NaN、正负 Infinity、非整数休息时长和非法类型会被拒绝。
+* 设置窗口文本解析同样经过集中校验，超范围和非有限值不会进入内存配置或覆盖磁盘配置；重启后已保存的今日免打扰会恢复对应悬浮状态。
+* 配置保存前生成同目录临时 JSON，成功刷新后原子替换；替换失败会抛出错误并保留旧主文件；主配置损坏时尝试 `.bak`。
+* 自然倒计时发布 `ReminderCompleted`，主动跳过/关闭发布 `ReminderDismissed`；`立即休息` 携带 `source="manual"`，不进入计划提醒完成率。
+* 今日免打扰按本地日期保存，跨重启有效；跨午夜清除标记并从新的提醒间隔开始。它只抑制自动提醒，“立即休息”仍可用，“恢复”可提前解除。
+* 统计包含计划提醒、自然完成、主动跳过、暂停四项；暂停包括普通暂停和今日免打扰。损坏统计文件恢复为零，清空统计只重置 `stats.json`。
+
+Dependency and install/run impact:
+
+* 未新增运行时依赖；继续使用 Python 标准库、Tkinter、已有 `pystray` 和 Pillow。
+* 新增本地运行文件 `stats.json`，并加入 `.gitignore`；安装、运行和 PyInstaller 命令不变。
+
+Test commands and results:
+
+* `py -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest-v12-baseline` — **228 passed in 1.20s**。
+* `py -m pytest -q tests/test_persistence.py tests/test_config.py tests/test_state.py -p no:cacheprovider --basetemp=.tmp\pytest-v12-persistence-green` — **39 passed in 0.14s**。
+* `py -m pytest -q tests/test_timer_engine.py tests/test_reminder_window.py tests/test_bridge.py -p no:cacheprovider --basetemp=.tmp\pytest-v12-outcome-green` — **67 passed in 0.15s**。
+* `py -m pytest -q tests/test_state.py tests/test_timer_engine.py tests/test_reminder_window.py tests/test_tray.py tests/test_bridge.py -p no:cacheprovider --basetemp=.tmp\pytest-v12-today-green` — **91 passed in 0.26s**。
+* `py -m pytest -q tests/test_stats.py tests/test_bridge.py tests/test_settings_window.py -p no:cacheprovider --basetemp=.tmp\pytest-v12-stats-green` — **46 passed in 0.25s**。
+* `py -m pytest -q tests/test_settings_window.py tests/test_bridge.py tests/test_config.py -p no:cacheprovider --basetemp=.tmp\pytest-v12-final-hardening-green` — **73 passed in 0.23s**。
+* `py -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest-v12-final` — **280 passed in 1.34s**。
+* `py -m compileall -q app main.py` — passed。
+* `git diff --check` — passed；仅输出既有文件的 LF/CRLF 提示，没有空白错误。
+
+Known limitations and next work:
+
+* 尚未完成用户实际 Windows DPI、多显示器、托盘和提醒窗口的手动 GUI 验收；不能把本地自动化测试当作手动验收。
+* 尚未得到用户“验收没有问题”的确认，因此没有推送 GitHub。
+* 当前开发分支为 `codex/v1-2`；工作树中的原有 `HANDOFF.md`、`v1.1体验优化.md`、`v1.2功能规划.md`、`docs/` 和 `out/` 改动需继续保留并单独核对。
+
+## Current planning: v1.2 功能开发规划
+
+Changed files:
+
+* `v1.2功能规划.md`: 新增配置可靠性、提醒窗口快捷暂停、本地统计和暂停到今天结束的开发规划、数据语义、阶段顺序和验收标准。
+* `v1.1体验优化.md`: 增加边界说明，避免 v1.1 体验优化文档与 v1.2 新功能规划冲突。
+
+Current behavior:
+
+* 只修改规划文档，不修改程序行为、依赖、安装、运行和构建命令。
+* v1.2 只聚焦护眼提醒，计划交付阶段 1 至 3；番茄钟不纳入产品范围。
+* 本地统计的三个指标定义为提醒次数、用户明确跳过次数和成功暂停次数；自动结束的休息不算跳过。
+* “今天不再提醒”按本地自然日持久化，跨重启有效，跨午夜自动解除。
+
+Dependency and test impact:
+
+* 规划默认不新增运行时依赖，配置校验使用 Python 标准库 `math.isfinite`，数据继续使用本地 JSON。
+* 本次只改 Markdown 规划文档，未运行自动化测试。
+
+Known limitations:
+
+* 这是开发规划，不代表上述功能已经实现或完成手动验收。
+* 当前工作区仍存在此前未提交的代码、测试和工具文件；开发 v1.2 前应先单独整理并验收现有修改。
+
+## Current planning update: remove Pomodoro scope
+
+Changed files:
+
+* `v1.2功能规划.md`: 删除番茄钟阶段、模式设计、涉及文件和验收标准，明确 EyeBreak 只聚焦护眼提醒。
+* `v1.1体验优化.md`: 删除对番茄钟规划的引用。
+
+Current behavior:
+
+* 只修改规划文档，不修改程序行为、依赖、安装、运行和构建命令。
+* v1.2 仅保留配置可靠性、提醒窗口快捷暂停、本地统计和“今天不再提醒”三个阶段。
+
+Dependency and test impact:
+
+* 依赖不变。
+* 本次只改 Markdown 规划文档，未运行自动化测试。
+
+Known limitations:
+
+* 番茄钟仍会出现在早期历史记录和“未实现范围”说明中，表示它明确不属于当前产品范围，不代表待开发功能。
+
+## Current planning finalization: v1.2 eye-break scope
+
+Changed files:
+
+* `v1.2功能规划.md`: 根据最终产品定位重写为完整的护眼提醒 v1.2 规划，删除番茄钟开发阶段、前台检测、全局键鼠监控和摄像头监控；明确倒计时完成、跳过、暂停和未结束的结果语义。
+* `docs/superpowers/plans/2026-09-01-eyebreak-v1-2.md`: 新增按明日开发顺序拆分的实施计划，覆盖测试、实现、验收、提交和推送边界。
+
+Current behavior:
+
+* 本次只修改规划文档，不修改程序行为、依赖、安装、运行和构建命令。
+* v1.2 开发阶段为：配置合法性与安全保存、提醒窗口快捷暂停、今天不再提醒、本地统计和倒计时结果、完整回归与验收。
+* EyeBreak 不监督用户；鼠标移动、键盘输入、后台窗口、系统通知和 UAC 不参与休息结果判断。
+* 统计中的“完成”仅表示提醒倒计时自然结束，不代表程序验证了用户真实的视觉休息。
+
+Dependency and test impact:
+
+* 规划不新增运行时依赖，使用 Python 标准库 JSON、原子文件替换和 `math.isfinite`。
+* 本次只改 Markdown 规划文档，未运行自动化测试。
+
+Known limitations:
+
+* 实施计划尚未执行，所有 v1.2 功能仍未实现，也没有完成手动 GUI 验收。
+* `docs/superpowers/plans/2026-09-01-eyebreak-v1-2.md` 中的提交命令仅供明日开发阶段使用，不能跳过测试、文档同步和用户验收。
+
 ## Acceptance: performance optimization milestone
 
 * On 2026-09-01, the user confirmed: “功能都能够正常运行，验收通过”。
