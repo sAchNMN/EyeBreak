@@ -19,7 +19,39 @@ EyeBreak 是一个面向 Windows 中文用户的护眼休息提醒工具。
 
 ## 当前版本
 
-版本：`v1`
+版本：`V3`
+
+## 当前发布：EyeBreak V3
+
+发布信息：
+
+* GitHub Release：`V3`
+* 发布提交：`5b46698cbcb6e5f35e77f431724d13b9345cfc38`
+* 发布资产：`EyeBreak.zip`
+* 资产 SHA-256：`ED74962BEAE30511CDADCC3CB2BD001E4A8C17A20158815FE36AA0FD11B1B884`
+
+当前行为：
+
+* V3 包含当前 `master` 分支上的 EyeBreak 功能，包括提醒、托盘、悬浮倒计时、暂停、今日免打扰、本地统计、配置校验和开机自启。
+* 发布包只包含 `EyeBreak.exe`，不包含本地配置、运行状态、统计数据或工作区草稿。
+
+依赖与安装/运行影响：
+
+* 未新增运行时依赖。
+* 安装、运行和 PyInstaller 构建命令不变。
+
+发布前验证：
+
+* `python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\\pytest-release-current`：当前环境缺少 `pytest` 模块，未启动。
+* `py -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\\pytest-release-current`：**280 passed in 1.38s**。
+* `py -m compileall -q app main.py`：通过。
+* `py -m PyInstaller build.spec`：通过；存在第三方 `pystray` 的既有 `SyntaxWarning`，不影响构建。
+* `git diff --check`：通过。
+
+已知限制与后续工作：
+
+* 工作区仍保留未跟踪的 `docs/` 和 `out/`，未进入提交或发布包。
+* `VERSION`、README 和本交接文档已同步为 `V3`。
 
 ## Current fix: reminder shown immediately after autostart
 

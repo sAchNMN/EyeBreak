@@ -274,4 +274,4 @@ python -m PyInstaller build.spec
 
 ## 下一步
 
-当前 v1 已发布，发布记录以 GitHub Releases 页面为准。下一步可以继续做更细的用户体验优化，或准备 Windows 安装包。
+当前 V3 已发布，发布记录以 [GitHub Releases](https://github.com/sAchNMN/EyeBreak/releases/tag/V3) 页面为准。下一步可以继续做更细的用户体验优化，或准备 Windows 安装包。
