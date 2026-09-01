@@ -21,6 +21,7 @@ from app.core.events import (
     IdleDetected,
     IdleEnded,
     Paused,
+    ReminderCompleted,
     ReminderDismissed,
     ReminderTriggered,
     Resumed,
@@ -383,6 +384,38 @@ def test_break_now_publishes_reminder(
     assert engine.state.paused_until == 0.0
     assert len(events) == 1
     assert engine.current_state is TimerState.SHOWING_REMINDER
+
+
+def test_break_now_marks_reminder_as_manual(
+    bus: EventBus, engine: TimerEngine, monkeypatch
+) -> None:
+    monkeypatch.setattr(time, "monotonic", lambda: 100.0)
+    events: list[ReminderTriggered] = []
+    bus.subscribe(ReminderTriggered, events.append)
+
+    engine.break_now()
+
+    assert events[0].source == "manual"
+
+
+def test_natural_completion_is_not_a_skip(
+    bus: EventBus, engine: TimerEngine, monkeypatch
+) -> None:
+    monkeypatch.setattr(time, "monotonic", lambda: 100.0)
+    events: list = []
+    bus.subscribe(ReminderTriggered, events.append)
+    bus.subscribe(ReminderDismissed, events.append)
+    bus.subscribe(ReminderCompleted, events.append)
+
+    engine.break_now()
+    engine.complete_reminder()
+
+    assert [type(event).__name__ for event in events] == [
+        "ReminderTriggered",
+        "ReminderCompleted",
+    ]
+    assert events[-1].source == "manual"
+    assert engine.current_state is TimerState.RUNNING
 
 
 def test_break_now_noop_when_already_showing(

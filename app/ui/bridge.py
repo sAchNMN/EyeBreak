@@ -175,6 +175,7 @@ class EyeBreakBridge:
             on_pause=lambda m: self.engine.pause(m),
             on_exit=lambda: self.engine.request_exit(),
             master=self.root,
+            on_complete=self.engine.complete_reminder,
         ).show()
 
     def _on_reminder_dismissed(self, event: ReminderDismissed) -> None:

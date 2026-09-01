@@ -25,7 +25,9 @@ from app.core.events import (
     IdleDetected,
     IdleEnded,
     Paused,
+    ReminderCompleted,
     ReminderDismissed,
+    ReminderSource,
     ReminderTriggered,
     Resumed,
     Tick,
@@ -87,6 +89,7 @@ class TimerEngine:
         # Internal state tracking for idle/fullscreen edge transitions.
         self._was_idle = False
         self._was_fullscreen = False
+        self._active_reminder_source: ReminderSource | None = None
 
     # ── Properties ──────────────────────────────────────────────
 
@@ -162,7 +165,7 @@ class TimerEngine:
         # 5. Fire reminder if it's time and not already showing.
         if self._state.next_reminder_at <= now:
             if self._sm.current_state is not TimerState.SHOWING_REMINDER:
-                self._trigger_reminder()
+                self._trigger_reminder(source="scheduled")
             self._schedule_next_reminder()
 
         # 6. Publish the current tick for the UI to render.
@@ -201,7 +204,7 @@ class TimerEngine:
             return
         self._state.paused_until = 0.0
         self._state.next_reminder_at = time.monotonic()
-        self._trigger_reminder()
+        self._trigger_reminder(source="manual")
         self._schedule_next_reminder()
 
     def skip_reminder(self) -> None:
@@ -212,7 +215,19 @@ class TimerEngine:
         if self._sm.current_state is TimerState.SHOWING_REMINDER:
             self._sm.transition_to(TimerState.RUNNING)
             self._schedule_next_reminder()
-            self._bus.publish(ReminderDismissed())
+            source = self._active_reminder_source or "scheduled"
+            self._active_reminder_source = None
+            self._bus.publish(ReminderDismissed(source=source))
+
+    def complete_reminder(self) -> None:
+        """Finish a reminder after its countdown reaches zero naturally."""
+        if self._sm.current_state is not TimerState.SHOWING_REMINDER:
+            return
+        source = self._active_reminder_source or "scheduled"
+        self._sm.transition_to(TimerState.RUNNING)
+        self._active_reminder_source = None
+        self._bus.publish(ReminderCompleted(source=source))
+        self._schedule_next_reminder()
 
     def save_config(self, new_config) -> None:
         """Apply a new configuration and recalculate the schedule.
@@ -327,13 +342,15 @@ class TimerEngine:
 
         return is_fullscreen
 
-    def _trigger_reminder(self) -> None:
+    def _trigger_reminder(self, source: ReminderSource) -> None:
         """Fire a break reminder and publish the ReminderTriggered event."""
+        self._active_reminder_source = source
         self._sm.transition_to(TimerState.SHOWING_REMINDER)
         self._bus.publish(
             ReminderTriggered(
                 duration_seconds=self._config.break_duration_seconds,
                 pause_minutes=self._config.pause_minutes,
+                source=source,
             )
         )
 

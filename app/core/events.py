@@ -7,6 +7,10 @@ from the publisher to subscribers. The EventBus routes them by type.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
+
+
+ReminderSource = Literal["scheduled", "manual"]
 
 
 # ── Timer lifecycle events ──────────────────────────────────────
@@ -51,11 +55,21 @@ class ReminderTriggered:
 
     duration_seconds: int
     pause_minutes: float
+    source: ReminderSource = "scheduled"
+
+
+@dataclass(frozen=True)
+class ReminderCompleted:
+    """Published when a reminder countdown reaches zero naturally."""
+
+    source: ReminderSource
 
 
 @dataclass(frozen=True)
 class ReminderDismissed:
     """Published when the reminder window closes (skip / pause / exit)."""
+
+    source: ReminderSource = "scheduled"
 
 
 # ── State change events ─────────────────────────────────────────

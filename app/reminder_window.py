@@ -19,6 +19,7 @@ class ReminderWindow:
         on_pause: Callable[[int], None],
         on_exit: Callable[[], None],
         master: tk.Tk | None = None,
+        on_complete: Callable[[], None] | None = None,
     ) -> None:
         self.duration_seconds = duration_seconds
         self.remaining_seconds = duration_seconds
@@ -26,6 +27,7 @@ class ReminderWindow:
         self.on_skip = on_skip
         self.on_pause = on_pause
         self.on_exit = on_exit
+        self.on_complete = on_complete or on_skip
         self.master = master
         self.root = tk.Toplevel(master) if master else tk.Tk()
         self._build_window()
@@ -112,7 +114,8 @@ class ReminderWindow:
     def _tick(self) -> None:
         self.countdown_label.configure(text=str(self.remaining_seconds))
         if self.remaining_seconds <= 0:
-            self._skip()
+            self.on_complete()
+            self.root.destroy()
             return
 
         self.remaining_seconds -= 1

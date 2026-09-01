@@ -146,6 +146,7 @@ def test_on_reminder_triggered_opens_window(mock_rw, bridge, root) -> None:
         pause_minutes=5.0,
         on_skip=bridge.engine.skip_reminder,
         on_pause=mock_rw.call_args.kwargs.get("on_pause"),
+        on_complete=bridge.engine.complete_reminder,
         on_exit=mock_rw.call_args.kwargs.get("on_exit"),
         master=root,
     )
