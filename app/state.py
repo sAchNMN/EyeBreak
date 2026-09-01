@@ -1,15 +1,17 @@
 ﻿from __future__ import annotations
 
-import json
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from app.paths import runtime_file_path
+from app.persistence import atomic_write_json, read_json_object
 
 
 APP_STATE_PATH = runtime_file_path("app_state.json")
 VALID_FLOATING_EDGES = {"left", "right", "top", "bottom"}
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -27,12 +29,8 @@ def load_app_state(path: Path = APP_STATE_PATH) -> AppState:
     if not path.exists():
         return AppState()
 
-    try:
-        raw_state = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return AppState()
-
-    if not isinstance(raw_state, dict):
+    raw_state = read_json_object(path, {})
+    if not raw_state:
         return AppState()
 
     floating_state = raw_state.get("floating_countdown")
@@ -59,9 +57,9 @@ def save_app_state(state: AppState, path: Path = APP_STATE_PATH) -> None:
         }
     }
     try:
-        path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        atomic_write_json(path, payload)
     except OSError:
-        return
+        logger.exception("Could not save application state to %s", path)
 
 
 def _floating_edge(value: Any) -> str | None:
