@@ -4,7 +4,7 @@ import tkinter as tk
 from collections.abc import Callable
 from tkinter import messagebox
 
-from app.config import AppConfig
+from app.config import AppConfig, ConfigValidationError, validate_config
 from app.icons import apply_window_icon
 from app.stats import UsageStats, format_completion_rate
 
@@ -203,7 +203,7 @@ def parse_settings_values(
     idle_threshold_minutes: str,
     fullscreen_detection_enabled: bool = True,
 ) -> AppConfig:
-    return AppConfig(
+    config = AppConfig(
         reminder_interval_minutes=_positive_float(
             reminder_interval_minutes,
             "提醒间隔必须大于 0",
@@ -222,6 +222,10 @@ def parse_settings_values(
         ),
         fullscreen_detection_enabled=fullscreen_detection_enabled,
     )
+    try:
+        return validate_config(config)
+    except ConfigValidationError as exc:
+        raise ValueError(str(exc)) from exc
 
 
 def _positive_float(value: str, message: str) -> float:

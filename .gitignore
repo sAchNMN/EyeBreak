@@ -13,6 +13,7 @@ htmlcov/
 
 # 本地运行状态
 config.json
+config.json.bak
 app_state.json
 stats.json
 *.log

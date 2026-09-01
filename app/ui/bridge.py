@@ -88,6 +88,8 @@ class EyeBreakBridge:
         self._wire_events()
         self._build_tray()
         self.engine.start()
+        if self.engine.is_today_paused:
+            self._on_today_pause_started(TodayPauseStarted())
         self._main_tick()  # start the 1-second tick loop
 
     def _build_floating(self) -> None:

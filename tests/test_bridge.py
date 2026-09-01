@@ -403,3 +403,26 @@ def test_build_applies_persisted_floating_enabled_state(bridge) -> None:
         bridge.build()
 
     bridge.floating.set_enabled.assert_called_once_with(False)
+
+
+def test_build_shows_persisted_today_pause_status(bridge) -> None:
+    from datetime import date
+
+    bridge.engine._today_provider = lambda: date(2026, 9, 1)
+    bridge.engine.state.today_pause_date = "2026-09-01"
+    bridge._build_floating = MagicMock()
+    bridge._wire_events = MagicMock()
+    bridge._build_tray = MagicMock()
+    bridge._main_tick = MagicMock()
+    bridge.engine.start = MagicMock()
+
+    with (
+        patch("app.ui.bridge.set_windows_app_user_model_id"),
+        patch("app.ui.bridge.ensure_icon_file"),
+        patch("app.ui.bridge.apply_window_icon"),
+    ):
+        bridge.build()
+
+    bridge.floating.status_label.configure.assert_any_call(
+        text="今日免打扰", fg="#9ca3af"
+    )
