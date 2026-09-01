@@ -214,6 +214,8 @@ def test_open_settings_creates_new_window(mock_sw, bridge, root) -> None:
         bridge.engine.config,
         bridge._save_settings,
         bridge._clear_settings_window,
+        bridge.stats.stats,
+        bridge.stats.reset,
     )
     mock_sw.return_value.show.assert_called_once()
 

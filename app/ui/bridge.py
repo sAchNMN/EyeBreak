@@ -39,6 +39,7 @@ from app.platform.adapters import AutostartManagerAdapter
 from app.reminder_window import ReminderWindow
 from app.settings_window import SettingsWindow
 from app.state import AppState, save_app_state
+from app.stats import StatsTracker
 from app.tray import TrayIcon
 
 
@@ -62,6 +63,7 @@ class EyeBreakBridge:
         self.engine = engine
         self._state = state
         self._autostart_manager = autostart_manager
+        self.stats = StatsTracker(bus)
 
         # UI widgets owned by the bridge
         self.floating: FloatingCountdownWindow | None = None
@@ -233,6 +235,8 @@ class EyeBreakBridge:
             self.engine.config,
             self._save_settings,
             self._clear_settings_window,
+            self.stats.stats,
+            self.stats.reset,
         )
         self.settings.show()
     def activate_existing_session(self) -> None:

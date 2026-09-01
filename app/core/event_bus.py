@@ -26,6 +26,7 @@ from app.core.events import (
     IdleDetected,
     IdleEnded,
     Paused,
+    ReminderCompleted,
     ReminderDismissed,
     ReminderTriggered,
     Resumed,
@@ -33,6 +34,8 @@ from app.core.events import (
     Tick,
     TimerStarted,
     TimerStopped,
+    TodayPauseEnded,
+    TodayPauseStarted,
 )
 
 logger = logging.getLogger(__name__)
@@ -44,6 +47,7 @@ Event = (
     | Tick
     | ReminderTriggered
     | ReminderDismissed
+    | ReminderCompleted
     | StateChanged
     | IdleDetected
     | IdleEnded
@@ -54,6 +58,8 @@ Event = (
     | ConfigChanged
     | FloatingCountdownToggled
     | ExitRequested
+    | TodayPauseStarted
+    | TodayPauseEnded
 )
 
 E = TypeVar("E")

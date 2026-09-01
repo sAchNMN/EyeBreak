@@ -14,6 +14,7 @@ htmlcov/
 # 本地运行状态
 config.json
 app_state.json
+stats.json
 *.log
 
 # 本地工具和草稿状态

@@ -12,3 +12,6 @@ def app_base_dir() -> Path:
 
 def runtime_file_path(name: str) -> Path:
     return app_base_dir() / name
+
+
+STATS_PATH = runtime_file_path("stats.json")
