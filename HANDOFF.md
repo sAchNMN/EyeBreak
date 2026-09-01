@@ -736,6 +736,11 @@ Known limitations:
 * Manual visual acceptance is still required on the user's actual DPI, multi-monitor, and taskbar configuration.
 * This milestone remains uncommitted and unpushed until the user confirms acceptance.
 
+## Repository cleanup follow-up
+
+* 从 Git 跟踪中移除 `overview.md`；文件仍保留在本地并已加入 `.gitignore`，不会再次推送。
+* 本次不改变程序代码、依赖、安装、运行或测试命令。
+
 ## Current implementation: v1.2 eye-break flow
 
 Changed files:
