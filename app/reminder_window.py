@@ -42,12 +42,12 @@ class ReminderWindow:
     def _build_window(self) -> None:
         self.root.title("EyeBreak")
         apply_window_icon(self.root)
-        self.root.geometry("460x280")
+        self.root.geometry("460x360")
         self.root.resizable(False, False)
         self.root.configure(bg="#f5f7fb")
         self.root.attributes("-topmost", True)
         self.root.protocol("WM_DELETE_WINDOW", self._skip)
-        self._center_window(460, 280)
+        self._center_window(460, 360)
 
         title = tk.Label(
             self.root,
@@ -76,19 +76,36 @@ class ReminderWindow:
         )
         self.countdown_label.pack(pady=(0, 22))
 
-        button_frame = tk.Frame(self.root, bg="#f5f7fb")
-        button_frame.pack()
-
-        self._button(button_frame, "跳过本次", self._skip).pack(side=tk.LEFT, padx=6)
+        pause_control_frame = tk.Frame(self.root, bg="#f5f7fb")
+        pause_control_frame.pack(pady=(0, 8))
+        self._button(
+            pause_control_frame, "−", self._decrease_pause_minutes
+        ).pack(side=tk.LEFT, padx=2)
         self.pause_button = self._button(
-            button_frame,
+            pause_control_frame,
             self._pause_button_text(),
             self._pause,
         )
-        self.pause_button.pack(side=tk.LEFT, padx=6)
+        self.pause_button.pack(side=tk.LEFT, padx=2)
+        self._button(
+            pause_control_frame, "+", self._increase_pause_minutes
+        ).pack(side=tk.LEFT, padx=2)
         self.pause_button.bind("<MouseWheel>", self._adjust_pause_minutes)
         self.pause_button.bind("<Button-4>", self._adjust_pause_minutes)
         self.pause_button.bind("<Button-5>", self._adjust_pause_minutes)
+
+        quick_pause_frame = tk.Frame(self.root, bg="#f5f7fb")
+        quick_pause_frame.pack(pady=(0, 10))
+        for minutes in (5, 15, 30):
+            self._button(
+                quick_pause_frame,
+                f"延后 {minutes} 分钟",
+                lambda minutes=minutes: self._pause_for(minutes),
+            ).pack(side=tk.LEFT, padx=2)
+
+        button_frame = tk.Frame(self.root, bg="#f5f7fb")
+        button_frame.pack()
+        self._button(button_frame, "跳过本次", self._skip).pack(side=tk.LEFT, padx=6)
         self._button(button_frame, "退出", self._exit).pack(side=tk.LEFT, padx=6)
 
     def _button(
@@ -126,7 +143,10 @@ class ReminderWindow:
         self.root.destroy()
 
     def _pause(self) -> None:
-        self.on_pause(self.pause_minutes)
+        self._pause_for(self.pause_minutes)
+
+    def _pause_for(self, minutes: int) -> None:
+        self.on_pause(self._clamp_pause_minutes(minutes))
         self.root.destroy()
 
     def _exit(self) -> None:
@@ -140,6 +160,20 @@ class ReminderWindow:
 
         self.pause_minutes = self._clamp_pause_minutes(
             self.pause_minutes + direction * self.PAUSE_STEP_MINUTES
+        )
+        self.pause_button.configure(text=self._pause_button_text())
+        return "break"
+
+    def _increase_pause_minutes(self) -> str:
+        self.pause_minutes = self._clamp_pause_minutes(
+            self.pause_minutes + self.PAUSE_STEP_MINUTES
+        )
+        self.pause_button.configure(text=self._pause_button_text())
+        return "break"
+
+    def _decrease_pause_minutes(self) -> str:
+        self.pause_minutes = self._clamp_pause_minutes(
+            self.pause_minutes - self.PAUSE_STEP_MINUTES
         )
         self.pause_button.configure(text=self._pause_button_text())
         return "break"
