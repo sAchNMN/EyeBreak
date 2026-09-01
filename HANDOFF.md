@@ -778,8 +778,15 @@ Test commands and results:
 Known limitations and next work:
 
 * 尚未完成用户实际 Windows DPI、多显示器、托盘和提醒窗口的手动 GUI 验收；不能把本地自动化测试当作手动验收。
-* 尚未得到用户“验收没有问题”的确认，因此没有推送 GitHub。
-* 当前开发分支为 `codex/v1-2`；工作树中的原有 `HANDOFF.md`、`v1.1体验优化.md`、`v1.2功能规划.md`、`docs/` 和 `out/` 改动需继续保留并单独核对。
+* 用户已确认“验收没问题”，v1.2 已推送到 GitHub；当前本地分支为 `master`。
+* 工作树中的原有 `v1.1体验优化.md`、`docs/` 和 `out/` 改动仍需继续保留并单独核对。
+
+## Repository cleanup: keep public tree focused
+
+* 从 Git 跟踪中移除 `架构重构方案.md`、`v1.1体验优化.md` 和 `v1.2功能规划.md`；这些文件仍保留在本地，并已加入 `.gitignore`，不会再次被推送。
+* `docs/` 和 `out/` 原本未被跟踪，本次未加入提交。
+* 源码、测试、资源、依赖、构建入口、`README.md`、`HANDOFF.md` 和 `AGENTS.md` 保留。
+* 本次只改变远程仓库内容，不改变程序行为、依赖、安装、运行或测试命令。
 
 ## Current planning: v1.2 功能开发规划
 
