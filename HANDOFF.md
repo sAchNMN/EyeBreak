@@ -1006,6 +1006,36 @@ Known limitations:
 * Manual visual acceptance is still required on the user's actual DPI, multi-monitor, and taskbar configuration.
 * This milestone remains uncommitted and unpushed until the user confirms acceptance.
 
+## Current release: EyeBreak V3.3
+
+Release information:
+
+* GitHub Release: `V3.3` — https://github.com/sAchNMN/EyeBreak/releases/tag/V3.3 (published 2026-10-01, marked Latest)
+* Released commit: `52bd74a5667c660ad72140c502c709abff068e5f` on `master`
+* Release asset: `EyeBreak-v3.3-onedir.zip`
+* Asset size: 19,926,528 bytes
+* Asset SHA-256: `423B61DF5F4E5AA205D709DB527F96807AB1978D25896794139D8C3D527E4DCE`
+* Executable SHA-256 inside the archive: `F50E594AA0DE1D0065DA497475E4E9E4599B7F19AA3EBC2209757A274FFB4B66`
+
+Current behavior:
+
+* `V3.3` differs from `V3.2` only in packaging configuration: the executable now carries a Windows version resource, and `VERSION` was bumped from `V3` to `V3.3` so the version file, the executable resource, the release tag and the asset name all agree.
+* Functional behavior is unchanged from `V3.2`.
+* The executable is still unsigned.
+
+Publication verification:
+
+* The published asset was downloaded back from its release URL and re-hashed; the remote SHA-256 matched the local one exactly (`423B61DF…4DCE`), confirming the upload did not alter the file.
+* The downloaded archive was extracted and the resulting `EyeBreak-v3.3\EyeBreak.exe` reported `FileVersion 3.3.0.0`, `CompanyName sAchNMN`, `ProductName EyeBreak`, `FileDescription EyeBreak - eye rest reminder for Windows`, `LegalCopyright Copyright (C) 2026 sAchNMN. MIT License.`, and its SHA-256 matched the pre-upload executable.
+* The `V3` and `V3.2` releases were left untouched; `V3.3` is published as a new release rather than an asset replacement.
+
+Known limitations:
+
+* Not validated on a clean machine without the project and without a running EyeBreak instance: whether version metadata actually reduces the false-positive rate for other users is still unconfirmed. Treat `V3.3` as a risk reduction, not a proven fix.
+* Unsigned: SmartScreen will still warn about an unknown publisher until code signing is added.
+* Metadata alone does not clear detections that are already keyed to an older file hash; vendor false-positive submissions are still needed, and should cite the new hashes above.
+* Open items: rebuild in a clean virtual environment, pin `requirements.txt` (Pillow is unpinned), code signing, false-positive submissions to Microsoft and to domestic vendors.
+
 ## Current fix: Windows PE version metadata for the executable
 
 Goal:
@@ -1047,6 +1077,7 @@ Test commands and results:
 * `Get-FileHash dist\EyeBreak\EyeBreak.exe -Algorithm SHA256` — `F50E594AA0DE1D0065DA497475E4E9E4599B7F19AA3EBC2209757A274FFB4B66`.
 * Release archive built with `Compress-Archive` from a staged `EyeBreak-v3.3/` folder (executable plus `_internal/`, no local `config.json`, `app_state.json` or `stats.json`): `dist/EyeBreak-v3.3-onedir.zip`, 19,926,528 bytes, `Get-FileHash ... -Algorithm SHA256` — `423B61DF5F4E5AA205D709DB527F96807AB1978D25896794139D8C3D527E4DCE`.
 * Archive round-trip: `Expand-Archive` then re-reading `EyeBreak-v3.3\EyeBreak.exe` version info returned `FileVersion 3.3.0.0`, `CompanyName sAchNMN`, `ProductName EyeBreak`; the archive holds 959 entries with `EyeBreak-v3.3\EyeBreak.exe` and `EyeBreak-v3.3\_internal\`.
+* `Invoke-WebRequest https://github.com/sAchNMN/EyeBreak/releases/download/V3.3/EyeBreak-v3.3-onedir.zip` — downloaded 19,926,528 bytes, SHA-256 `423B61DF5F4E5AA205D709DB527F96807AB1978D25896794139D8C3D527E4DCE`, identical to the local artifact.
 * `Start-MpScan -ScanType CustomScan -ScanPath dist\EyeBreak` with Defender signature `1.459.491.0`, real-time protection on — scan completed, `Get-MpThreatDetection` recorded no detections.
 * Launch check: starting `dist\EyeBreak\EyeBreak.exe` while an installed instance was already running produced no second process, because the existing single-instance guard made the new process exit. The executable therefore started and reached the single-instance logic successfully. A full launch check on a machine with no running EyeBreak instance is still required.
 * `py -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest-vinfo` — **253 passed, 27 errors in 2.26s**. All 27 errors were `FileNotFoundError: [WinError 3] ...\.tmp\pytest-vinfo` raised by the fixture's single-level `Path.mkdir()`: the `.tmp` parent directory did not exist. Environmental, not a code or packaging regression.
