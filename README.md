@@ -1,4 +1,4 @@
-﻿# EyeBreak
+# EyeBreak
 
 EyeBreak 是一个面向 Windows 中文用户的护眼休息提醒工具。
 
@@ -80,24 +80,17 @@ python main.py
 py scripts\monitor_performance.py --duration 600 --interval 5 --output .tmp\source-performance.csv -- python main.py
 ```
 
-监测 PyInstaller 版本时，当前构建是单文件 EXE，会先启动一个引导进程，再启动真正的应用子进程。因此不能直接把 `dist\EyeBreak.exe` 作为监测器的命令目标，否则可能只测到引导进程。请先启动 EXE，再找到同路径子进程的 PID，然后用 `--pid` 监测真实应用：
+监测 PyInstaller 版本时，当前构建是**目录模式（onedir）**，`dist\EyeBreak\EyeBreak.exe` 就是真正的应用进程：它不再先启动引导进程再启动子进程，因此可以直接把启动返回的 PID 交给监测器，不需要再去找子进程：
 
 ```powershell
 $workdir = (Get-Location).Path
-$exePath = (Resolve-Path -LiteralPath 'dist\EyeBreak.exe').Path
-$launcher = Start-Process -FilePath $exePath -WorkingDirectory $workdir -PassThru
+$exePath = (Resolve-Path -LiteralPath 'dist\EyeBreak\EyeBreak.exe').Path
+$app = Start-Process -FilePath $exePath -WorkingDirectory $workdir -PassThru
 try {
-    do {
-        $child = Get-CimInstance Win32_Process |
-            Where-Object { $_.ParentProcessId -eq $launcher.Id -and $_.ExecutablePath -eq $exePath } |
-            Select-Object -First 1
-        if (-not $child) { Start-Sleep -Milliseconds 200 }
-    } while (-not $child)
-    py scripts\monitor_performance.py --pid $child.ProcessId --duration 600 --interval 5 --output .tmp\exe-performance.csv
+    py scripts\monitor_performance.py --pid $app.Id --duration 600 --interval 5 --output .tmp\exe-performance.csv
 }
 finally {
-    if ($child) { Stop-Process -Id $child.ProcessId -Force -ErrorAction SilentlyContinue }
-    if ($launcher) { Stop-Process -Id $launcher.Id -Force -ErrorAction SilentlyContinue }
+    if ($app) { Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue }
 }
 ```
 
@@ -109,7 +102,7 @@ py scripts\monitor_performance.py --pid 1234 --duration 600 --interval 5 --outpu
 
 把 `1234` 换成目标进程的 PID。监测结束后脚本会输出 CPU 平均值、P95、峰值，以及内存初始值、最终值、峰值和变化量。按 `Ctrl+C` 提前停止时，已经采集的数据仍会保留在 CSV 中；脚本不会自动关闭被监测的 EyeBreak 进程。
 
-源码监测命令请使用 `python main.py`，不要写成 `py main.py`。Windows 的 `py.exe` 可能只是启动器，监测器拿到的 PID 可能不是实际运行 EyeBreak 的 Python 进程。EXE 监测则必须按上面的方式跟踪真实子进程。
+源码监测命令请使用 `python main.py`，不要写成 `py main.py`。Windows 的 `py.exe` 可能只是启动器，监测器拿到的 PID 可能不是实际运行 EyeBreak 的 Python 进程。目录模式（onedir）的 EXE 监测可以直接使用上面启动命令返回的 PID。
 
 为了快速验收，可以临时把 `config.json` 改成短间隔：
 
@@ -139,7 +132,9 @@ py scripts\monitor_performance.py --pid 1234 --duration 600 --interval 5 --outpu
 python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest
 ```
 
-最近一次结果：`280 passed in 1.34s`。
+最近一次结果：`280 passed in 1.96s`（本次构建配置改动后重跑）。
+
+运行前请确保 `.tmp` 目录存在：测试夹具只创建一层临时目录，若 `.tmp` 不存在会报 `FileNotFoundError: [WinError 3]`。
 
 ## 构建
 
@@ -150,7 +145,11 @@ pip install pyinstaller
 python -m PyInstaller build.spec
 ```
 
-产物是 `dist/EyeBreak.exe`。把整个 `dist/` 文件夹复制到其他 Windows 电脑即可运行，不需要额外安装 Python。
+产物是目录模式（onedir）的 `dist/EyeBreak/` 文件夹，入口为 `dist/EyeBreak/EyeBreak.exe`，依赖文件在 `dist/EyeBreak/_internal/`。把整个 `dist/EyeBreak/` 文件夹复制到其他 Windows 电脑即可运行，不需要额外安装 Python。
+
+请勿只复制 `EyeBreak.exe`：目录模式下它必须和同级的 `_internal/` 一起存在，单独移动会无法启动。
+
+`version_info.txt` 是 Windows PE 版本资源（公司名、产品名、文件版本、版权等），由 `build.spec` 的 `version=` 参数写入 EXE。发行版必须带上它：缺少版本信息会让可执行文件被浏览器和杀毒软件的信誉机制当成匿名加壳程序，抬高误报概率。修改版本号时，`version_info.txt` 中的 `filevers`/`prodvers` 与 `FileVersion`/`ProductVersion` 需要与 `VERSION` 保持同步。
 
 注意：`config.json`、`app_state.json` 和 `stats.json` 从应用目录读取。打包后如需预置配置，把它们放在 `EyeBreak.exe` 旁边。
 
@@ -274,4 +273,14 @@ python -m PyInstaller build.spec
 
 ## 下一步
 
-当前 V3 已发布，发布记录以 [GitHub Releases](https://github.com/sAchNMN/EyeBreak/releases/tag/V3) 页面为准。下一步可以继续做更细的用户体验优化，或准备 Windows 安装包。
+当前最新发布是 `V3.3`，发布记录以 [GitHub Releases](https://github.com/sAchNMN/EyeBreak/releases) 页面为准。下一步可以继续做更细的用户体验优化，或准备 Windows 安装包。
+
+`V3.3` 是 `V3.2` 之后的一次**打包配置改动**：可执行文件补上了 Windows 版本资源（公司名、产品名、文件版本、版权），用于降低被浏览器和杀毒软件的信誉机制当成匿名加壳程序而误报的概率。功能行为与 `V3.2` 一致。
+
+已发布的 Windows 可执行文件尚未做代码签名，因此首次运行时 Windows SmartScreen 可能提示“未知发布者”，部分杀毒软件也可能对 PyInstaller 打包的程序产生误报。这不是程序行为问题：EyeBreak 只读写自身目录下的本地配置文件，不会联网。校验下载包是否完整，可用 Release 说明中给出的 SHA-256 比对：
+
+```powershell
+Get-FileHash .\EyeBreak-v3.3-onedir.zip -Algorithm SHA256
+```
+
+彻底消除此类提示需要为可执行文件添加代码签名，并向杀毒软件厂商提交误报申诉。

@@ -1005,3 +1005,58 @@ Known limitations:
 
 * Manual visual acceptance is still required on the user's actual DPI, multi-monitor, and taskbar configuration.
 * This milestone remains uncommitted and unpushed until the user confirms acceptance.
+
+## Current fix: Windows PE version metadata for the executable
+
+Goal:
+
+* Reduce antivirus and browser reputation false positives for the released Windows binary by giving it a real, identifiable software identity.
+
+Root cause:
+
+* The shipped `EyeBreak.exe` had a completely empty PE version resource: `CompanyName`, `FileDescription`, `ProductName`, `FileVersion`, `ProductVersion`, `LegalCopyright` and `OriginalFilename` were all empty strings, and the binary was unsigned.
+* A binary with no publisher, no product name and no version is treated by antivirus reputation and heuristic engines as an anonymous packed executable, and Windows cannot show a recognizable publisher or product name in UAC, SmartScreen or the file properties dialog.
+* This is independent of the earlier V3.2 change from onefile to onedir and of disabling UPX, which were already in place.
+
+Changed files:
+
+* `version_info.txt` (new): PyInstaller `VSVersionInfo` resource with `CompanyName=sAchNMN`, `FileDescription=EyeBreak - eye rest reminder for Windows`, `ProductName=EyeBreak`, `FileVersion`/`ProductVersion=3.3.0.0`, `LegalCopyright`, `InternalName`, `OriginalFilename`, plus `filevers`/`prodvers=(3, 3, 0, 0)` and translation `040904B0`.
+* `build.spec`: the `EXE(...)` call now passes `version=str(PROJECT_ROOT / "version_info.txt")`. No other packaging input changed; onefile mode was not reintroduced and `upx=False` is unchanged.
+* `VERSION`: bumped from `V3` to `V3.3`, so the version file, the executable's version resource, the release tag and the release asset name all agree. The previously unresolved `VERSION` versus release-tag mismatch is closed by this release.
+* `README.md`: corrected three places that still described the obsolete onefile build. The performance-monitoring section no longer instructs users to hunt for a bootloader child process and now targets `dist\EyeBreak\EyeBreak.exe` directly; the build section documents the onedir output (`dist/EyeBreak/` plus `_internal/`), warns against copying the EXE alone, and documents `version_info.txt`; the closing section now points at `V3.3`, states the current signing status, and gives the `Get-FileHash` verification command. The test-results line was refreshed to the current run and the `.tmp` prerequisite was documented. The file's original UTF-8 BOM was preserved.
+* Repository root cleanup: the untracked `EyeBreak.zip`, `EyeBreak-no-upx.zip` and `EyeBreak-onedir.zip` were moved out of the repository to `%TEMP%\EyeBreak-repo-backup-20261001`. They were not deleted. Note that the first two were byte-identical (both SHA-256 `30803943632A8B28B8C8D67E6A6F2F2A88F68F4B465ACDD5DC1A21EB11B13CAA`), and `EyeBreak-onedir.zip` was `1BA5B458768FB5AB2F180F9274F808FC4B42DA529E878E388A5ED02832FD2B94`, matching the V3.2 release asset.
+
+Current behavior:
+
+* `dist/EyeBreak/EyeBreak.exe` now carries full version metadata; the file properties dialog and `Get-Item ... .VersionInfo` show a real company, product, description and version.
+* Output layout is unchanged: onedir, `dist/EyeBreak/EyeBreak.exe` plus `dist/EyeBreak/_internal/`.
+* The executable is still unsigned (`SignatureStatus: NotSigned`). Version metadata reduces, but does not remove, the unsigned-binary reputation problem; code signing and vendor false-positive submissions remain the follow-up work.
+
+Dependency and build impact:
+
+* No new dependency. `version_info.txt` is consumed by the already-installed PyInstaller 6.22.2.
+* Rebuild command is unchanged: `py -m PyInstaller build.spec --noconfirm`.
+* `version_info.txt` values must be kept in sync with the `VERSION` file manually. Both now read 3.3 (release tag `V3.3`).
+
+Test commands and results:
+
+* `py -c "from PyInstaller.utils.win32.versioninfo import load_version_info_from_text_file as L; print(L(r'version_info.txt'))"` — resource parsed successfully as `VSVersionInfo`.
+* `py -m PyInstaller build.spec --noconfirm` — build completed, log contains `Copying version information to EXE`; artifacts written to `dist/`.
+* `(Get-Item dist\EyeBreak\EyeBreak.exe).VersionInfo` — `FileVersion 3.3.0.0`, `ProductVersion 3.3.0.0`, `CompanyName sAchNMN`, `FileDescription EyeBreak - eye rest reminder for Windows`, `ProductName EyeBreak`, `LegalCopyright Copyright (C) 2026 sAchNMN. MIT License.`, `OriginalFilename EyeBreak.exe`, `InternalName EyeBreak`.
+* `Get-AuthenticodeSignature dist\EyeBreak\EyeBreak.exe` — `NotSigned` (expected; no certificate available in this environment).
+* `Get-FileHash dist\EyeBreak\EyeBreak.exe -Algorithm SHA256` — `F50E594AA0DE1D0065DA497475E4E9E4599B7F19AA3EBC2209757A274FFB4B66`.
+* Release archive built with `Compress-Archive` from a staged `EyeBreak-v3.3/` folder (executable plus `_internal/`, no local `config.json`, `app_state.json` or `stats.json`): `dist/EyeBreak-v3.3-onedir.zip`, 19,926,528 bytes, `Get-FileHash ... -Algorithm SHA256` — `423B61DF5F4E5AA205D709DB527F96807AB1978D25896794139D8C3D527E4DCE`.
+* Archive round-trip: `Expand-Archive` then re-reading `EyeBreak-v3.3\EyeBreak.exe` version info returned `FileVersion 3.3.0.0`, `CompanyName sAchNMN`, `ProductName EyeBreak`; the archive holds 959 entries with `EyeBreak-v3.3\EyeBreak.exe` and `EyeBreak-v3.3\_internal\`.
+* `Start-MpScan -ScanType CustomScan -ScanPath dist\EyeBreak` with Defender signature `1.459.491.0`, real-time protection on — scan completed, `Get-MpThreatDetection` recorded no detections.
+* Launch check: starting `dist\EyeBreak\EyeBreak.exe` while an installed instance was already running produced no second process, because the existing single-instance guard made the new process exit. The executable therefore started and reached the single-instance logic successfully. A full launch check on a machine with no running EyeBreak instance is still required.
+* `py -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest-vinfo` — **253 passed, 27 errors in 2.26s**. All 27 errors were `FileNotFoundError: [WinError 3] ...\.tmp\pytest-vinfo` raised by the fixture's single-level `Path.mkdir()`: the `.tmp` parent directory did not exist. Environmental, not a code or packaging regression.
+* `New-Item -ItemType Directory -Force -Path .tmp` then `py -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest-vinfo3` — **280 passed in 1.96s**.
+
+Known limitations:
+
+* Unsigned: SmartScreen will still warn about an unknown publisher until code signing is added.
+* Metadata alone does not clear detections that are already keyed to an older file hash; vendor false-positive submissions are still needed.
+* No previously published release asset was modified or replaced by this change: `V3.3` is published as a new release, while the `V3` and `V3.2` assets stay as they are.
+* The follow-up items identified earlier and still open: rebuild in a clean virtual environment, pin `requirements.txt` (Pillow is unpinned), code signing, and false-positive submissions to Microsoft and to domestic vendors. The README corrections, the repository-root zip cleanup and the `VERSION`/tag alignment listed in the original plan were completed in this change.
+* The Windows binary is still unsigned and the metadata-only fix has not yet been validated on a clean machine without the project or any EyeBreak instance. Version metadata is a low-cost risk reduction, not a substitute for code signing.
+* Releasing `V3.3` does not retract the `V3.2` and `V3` assets, which remain published with their own hashes. Vendor false-positive submissions should reference the new hash `423B61DF5F4E5AA205D709DB527F96807AB1978D25896794139D8C3D527E4DCE` for the archive and `F50E594AA0DE1D0065DA497475E4E9E4599B7F19AA3EBC2209757A274FFB4B66` for the executable.

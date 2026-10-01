@@ -85,6 +85,10 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=str(PROJECT_ROOT / "assets" / "eyebreak.ico"),
+    # Windows PE version resource (company / product / version / copyright).
+    # Without it the executable ships with empty metadata, which makes it look
+    # like an anonymous packed binary to antivirus reputation engines.
+    version=str(PROJECT_ROOT / "version_info.txt"),
 )
 
 coll = COLLECT(

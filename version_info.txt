@@ -1,0 +1,46 @@
+# UTF-8
+#
+# PyInstaller VSVersionInfo resource for EyeBreak (Windows PE version metadata).
+#
+# Why this file exists:
+#   A Windows executable whose CompanyName / FileDescription / ProductName /
+#   FileVersion / LegalCopyright fields are ALL EMPTY looks exactly like a
+#   generic packed binary to antivirus reputation and heuristic engines, and
+#   Windows cannot show a recognizable publisher or product name in UAC,
+#   SmartScreen, or the file properties dialog. Filling the version resource
+#   gives the binary a stable, identifiable software identity.
+#
+# Maintenance:
+#   Keep filevers / prodvers and the FileVersion / ProductVersion strings in
+#   sync with the VERSION file at the repository root. These are Windows
+#   x.y.z.w numeric fields only (0-65535 per part); build metadata such as
+#   "-rc1" must NOT appear here.
+#
+VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers=(3, 3, 0, 0),
+    prodvers=(3, 3, 0, 0),
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,
+    fileType=0x1,
+    subtype=0x0,
+    date=(0, 0)
+  ),
+  kids=[
+    StringFileInfo(
+      [
+        StringTable(
+          '040904B0',
+          [StringStruct('CompanyName', 'sAchNMN'),
+          StringStruct('FileDescription', 'EyeBreak - eye rest reminder for Windows'),
+          StringStruct('FileVersion', '3.3.0.0'),
+          StringStruct('InternalName', 'EyeBreak'),
+          StringStruct('LegalCopyright', 'Copyright (C) 2026 sAchNMN. MIT License.'),
+          StringStruct('OriginalFilename', 'EyeBreak.exe'),
+          StringStruct('ProductName', 'EyeBreak'),
+          StringStruct('ProductVersion', '3.3.0.0')])
+      ]),
+    VarFileInfo([VarStruct('Translation', [1033, 1200])])
+  ]
+)
