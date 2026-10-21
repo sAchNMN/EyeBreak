@@ -322,14 +322,26 @@ winget install --id JRSoftware.InnoSetup -e
 
 ## 下一步
 
-当前最新发布是 `V3.3`，发布记录以 [GitHub Releases](https://github.com/sAchNMN/EyeBreak/releases) 页面为准。安装包已能在本地生成（`dist\installer\EyeBreak-Setup-3.3.exe`），但尚未作为 Release 资产发布；下一步可以手动验收安装包，或继续做更细的用户体验优化。
+当前最新发布是 `V3.4`，发布记录以 [GitHub Releases](https://github.com/sAchNMN/EyeBreak/releases) 页面为准。
 
-`V3.3` 是 `V3.2` 之后的一次**打包配置改动**：可执行文件补上了 Windows 版本资源（公司名、产品名、文件版本、版权），用于降低被浏览器和杀毒软件的信誉机制当成匿名加壳程序而误报的概率。功能行为与 `V3.2` 一致。
+`V3.4` 在 `V3.3` 基础上的变化：
 
-已发布的 Windows 可执行文件尚未做代码签名，因此首次运行时 Windows SmartScreen 可能提示“未知发布者”，部分杀毒软件也可能对 PyInstaller 打包的程序产生误报。这不是程序行为问题：EyeBreak 只读写自身目录下的本地配置文件，不会联网。校验下载包是否完整，可用 Release 说明中给出的 SHA-256 比对：
+* 新增 Windows 安装包 `EyeBreak-Setup-3.4.exe`：按当前用户安装、不需要管理员权限，创建开始菜单快捷方式，卸载时清理配置、统计和开机自启项。
+* 应用图标改版：深青渐变底、薄荷色眼睛和琥珀色光点，ICO 覆盖 16–256 共 9 个尺寸。
+* 移除无订阅者的事件、未使用的仓储接口和重复的解析/托盘动作代码，用户可见行为不变。
+
+发布资产与校验值：
+
+| 资产 | 大小 | SHA-256 |
+|---|---|---|
+| `EyeBreak-Setup-3.4.exe` | 15,166,751 字节 | `031F3841AB0A2DF93A0E94A24AA07ABE152A42C8C0C9A8445CC677A975A20C4C` |
+| `EyeBreak-v3.4-onedir.zip` | 20,011,718 字节 | `1BF900E9B8999A76C48D5889BC1C621DBD550D9D3E57B4FD4FF0EBF3AD2554C5` |
+
+校验下载是否完整：
 
 ```powershell
-Get-FileHash .\EyeBreak-v3.3-onedir.zip -Algorithm SHA256
+Get-FileHash .\EyeBreak-v3.4-onedir.zip -Algorithm SHA256
+Get-FileHash .\EyeBreak-Setup-3.4.exe -Algorithm SHA256
 ```
 
 彻底消除此类提示需要为可执行文件添加代码签名，并向杀毒软件厂商提交误报申诉。

@@ -18,15 +18,14 @@ EyeBreak 是面向 Windows 中文用户的护眼休息提醒工具，使用 Pyth
 
 ## 当前版本与发布
 
-* `VERSION`：`V3.3`。`version_info.txt` 中的 `filevers`/`prodvers` 与 `FileVersion`/`ProductVersion` 必须与之一致。
-* 最新 Release：`V3.3` — https://github.com/sAchNMN/EyeBreak/releases/tag/V3.3 （2026-10-01 发布，标记 Latest）
-* 发布提交：`52bd74a5667c660ad72140c502c709abff068e5f`（`master`）
-* 发布资产：`EyeBreak-v3.3-onedir.zip`，19,926,528 字节
-  * 资产 SHA-256：`423B61DF5F4E5AA205D709DB527F96807AB1978D25896794139D8C3D527E4DCE`
-  * 包内 `EyeBreak.exe` SHA-256：`F50E594AA0DE1D0065DA497475E4E9E4599B7F19AA3EBC2209757A274FFB4B66`
-* `V3.3` 与上一版 `V3.2` 的唯一差异是打包配置：EXE 补上了 Windows PE 版本资源，`VERSION` 从 `V3` 对齐为 `V3.3`。功能行为不变。
-* 已发布的可执行文件仍未做代码签名。
-* 安装包：`installer.iss` + `scripts/build_installer.ps1` 可生成 `dist/installer/EyeBreak-Setup-3.3.exe`（15,161,148 字节，SHA-256 `BCF254BA7E1D99A5B872945B3DA7F8E5D7D9B1DEAA63DFD40B7EA9B5EA5C0A34`）。本地已构建，尚未作为 Release 资产发布，也未做代码签名。
+* `VERSION`：`V3.4`。`version_info.txt` 中的 `filevers`/`prodvers` 与 `FileVersion`/`ProductVersion` 必须与之一致。
+* 最新 Release：`V3.4` — https://github.com/sAchNMN/EyeBreak/releases/tag/V3.4 （2026-10-21 发布，标记 Latest）
+* 发布资产：
+  * `EyeBreak-Setup-3.4.exe`，15,166,751 字节，SHA-256 `031F3841AB0A2DF93A0E94A24AA07ABE152A42C8C0C9A8445CC677A975A20C4C`。按当前用户安装、不弹 UAC，推荐给普通用户。
+  * `EyeBreak-v3.4-onedir.zip`，20,011,718 字节，SHA-256 `1BF900E9B8999A76C48D5889BC1C621DBD550D9D3E57B4FD4FF0EBF3AD2554C5`；包内目录 `EyeBreak-v3.4/`，`EyeBreak.exe` SHA-256 `03D7FC8B2B6A705851E4D47F8F4C6978C42817516DDF9889FB1FE42A8D68BB81`。
+* `V3.4` 与 `V3.3` 的差异：新增 Inno Setup 安装包；应用图标改版（深青渐变 + 9 尺寸 ICO）；移除无订阅者事件、未使用仓储接口和重复的解析/托盘动作代码。用户可见行为不变。
+* 安装包和 EXE 均未做代码签名。
+* 升级前需要退出正在运行的 EyeBreak：安装器的 `AppMutex` 会检测到运行实例并中止（实测日志为 `Setup has detected that EyeBreak is currently running`），这是刻意行为。
 
 `V3` 与 `V3.2` 的资产未被替换，仍按各自哈希发布。发布历史以 GitHub Releases 页面为准。
 
@@ -89,7 +88,22 @@ python -m PyInstaller build.spec
 * 安装包只支持按用户安装，不能装到 `Program Files`：程序把 `config.json` 等写在 exe 旁边，普通用户对 `Program Files` 没有写权限。若要支持全机安装，需要先把数据目录迁到 `%APPDATA%`。
 * 卸载会删除 `config.json`、`config.json.bak`、`app_state.json`、`stats.json` 并清理开机自启注册表值，即“卸载即清空设置”；这是刻意行为，不是遗漏。
 * 待办：在没有项目和没有运行中实例的干净环境验证发布包与安装包、固定 `requirements.txt`、申请代码签名。
-* 工作区状态：`.dsh-tmp/` 已被 `.gitignore` 忽略；`dist/`、`build/` 是本次构建产物（同样被忽略，含 `dist/installer/EyeBreak-Setup-3.3.exe`）；`.tmp/` 已清理并保留为空目录供测试命令使用。
+* 工作区状态：`.dsh-tmp/` 已被 `.gitignore` 忽略；`dist/`、`build/` 是构建产物（同样被忽略，含 `dist/installer/EyeBreak-Setup-3.4.exe` 和 `dist/EyeBreak-v3.4-onedir.zip`）；`.tmp/` 已清理并保留为空目录供测试命令使用。
+
+## 本次变更：V3.4 发布（2026-10-21）
+
+发布内容：
+
+* `VERSION` → `V3.4`，`version_info.txt` → `3.4.0.0`，重新构建 `dist\EyeBreak\EyeBreak.exe`。
+* 新的安装包 `dist\installer\EyeBreak-Setup-3.4.exe` 和绿色版 `dist\EyeBreak-v3.4-onedir.zip`（包内目录 `EyeBreak-v3.4/`，结构与 `V3.3` 一致）。
+* 两个资产已通过 `gh release create V3.4` 上传，`master` 与 `V3.4` 标签均已推送。
+
+验证：
+
+* `.\scripts\build_installer.ps1` → PyInstaller **Build complete** + ISCC **Successful compile (8.594 sec)**；安装包 15,166,751 字节，PE `FileVersion` 3.4 / `ProductVersion` 3.4。
+* 运行实例保护：EyeBreak 正在运行时执行 `EyeBreak-Setup-3.4.exe /VERYSILENT`，日志记录 `Setup has detected that EyeBreak is currently running` 后 `EAbort` 退出，符合 `AppMutex` 设计。
+* `V3.4` 的完整安装/卸载**未重复执行**：验证时本机已有用户安装的 `V3.3` 且程序在运行。安装/卸载机制与 `V3.3` 相同（同一 `installer.iss`，仅版本号变化），`V3.3` 已完成端到端验证（安装、快捷方式、卸载项、运行期 JSON 与自启值清理）。
+* 打包内容校验：zip 条目 959 个，根目录 `EyeBreak-v3.4/`，`EyeBreak.exe` 版本 3.4.0.0。
 
 ## 本次变更：Windows 安装包（2026-10-21）
 
@@ -102,7 +116,7 @@ python -m PyInstaller build.spec
 
 当前行为：
 
-* `.\scripts\build_installer.ps1` 一条命令产出 `dist\installer\EyeBreak-Setup-3.3.exe`（15,161,148 字节，SHA-256 `BCF254BA7E1D99A5B872945B3DA7F8E5D7D9B1DEAA63DFD40B7EA9B5EA5C0A34`）。
+* `.\scripts\build_installer.ps1` 一条命令产出 `dist\installer\EyeBreak-Setup-<version>.exe`（`V3.4` 的产物见上一节；`V3.3` 时为 15,161,148 字节）。
 * 安装包按用户安装、不弹 UAC，创建开始菜单快捷方式，可选桌面快捷方式和安装后启动；卸载清理配置、统计和自启项。
 * 程序本身没有代码改动，用户可见行为与 `V3.3` 一致。
 
