@@ -4,6 +4,8 @@ EyeBreak 是一个面向 Windows 中文用户的护眼休息提醒工具。
 
 它用 Python、Tkinter 和 `pystray` 开发。程序会按设定间隔提醒用户休息眼睛，并提供悬浮倒计时、系统托盘菜单、暂停时长选择、开机自启和全屏延后提醒等功能。
 
+<img src="assets/eyebreak-icon.png" alt="EyeBreak 图标" width="120">
+
 ## 当前状态
 
 已完成：
@@ -32,7 +34,7 @@ EyeBreak 是一个面向 Windows 中文用户的护眼休息提醒工具。
 * 提醒弹窗暂停按钮支持鼠标滚轮调整暂停时长。
 * 提醒弹窗提供可见的 `−/+` 调节、延后 5/15/30 分钟和“今天不再提醒”按钮。
 * 倒计时自然结束记为完成；主动跳过或关闭记为跳过；不会用键鼠、前台窗口或摄像头判断休息是否有效。
-* 自定义 EyeBreak 图标，覆盖托盘、提醒窗口和 Windows 任务栏显示。
+* 自定义 EyeBreak 图标：深青渐变底、薄荷色眼睛和琥珀色光点，覆盖托盘、提醒窗口和 Windows 任务栏显示。
 * 托盘暂停菜单支持 5、15、30、60、120 分钟。
 * JSON 配置，保存提醒间隔、休息时长、暂停时长、离开检测阈值和全屏检测开关。
 * 配置拒绝 NaN、Infinity、负数、零值和超出范围的值；配置、状态和统计使用安全的本地 JSON 保存。
@@ -52,13 +54,22 @@ EyeBreak 是一个面向 Windows 中文用户的护眼休息提醒工具。
 
 ## 安装
 
+普通用户：下载 `EyeBreak-Setup-<version>.exe` 双击安装。安装包按当前用户安装（不弹 UAC），默认目录 `%LOCALAPPDATA%\Programs\EyeBreak`，会创建开始菜单快捷方式；卸载时一并清理运行期生成的配置、统计文件和开机自启项。安装包由源码构建，见[构建](#构建)中的“生成安装包”。
+
+安装包必须放在**不带低完整性标签**的普通目录里运行（桌面、下载目录等）。Windows 会按 exe 文件的完整性标签启动进程：如果安装包所在文件夹被 AI 工具或沙箱打上 `Low` 标签（`icacls <文件夹>` 能看到 `Mandatory Label\Low Mandatory Level`），双击后进程会以低完整性运行，无法向 `%TEMP%` 解包，报 `Setup was unable to create the directory ... Error 5: 拒绝访问`。把 exe 复制到桌面再运行即可；从 GitHub Release 下载的资产不带 NTFS 标签，不受影响。
+
+从源码运行或开发时，按下文安装依赖。
+
 托盘功能依赖 `pystray` 和 Pillow。
 
 安装依赖：
 
 ```powershell
-python -m pip install -r requirements.txt
+python -m venv .venv
+.\.venv\Scripts\python -m pip install -r requirements.txt
 ```
+
+如果 `python` 由 uv 管理，直接运行 `pip` 可能不在 `PATH`，而且该 Python 会被 PEP 668 标记为 externally-managed；使用上面的项目 `.venv` 可以避开这两个问题。
 
 ## 运行
 
@@ -67,6 +78,8 @@ python -m pip install -r requirements.txt
 ```powershell
 python main.py
 ```
+
+如果依赖装在项目 `.venv` 中，使用 `.\.venv\Scripts\python main.py`，或先激活 `.venv`。
 
 首次运行时，EyeBreak 会在应用目录旁生成 `config.json`。运行中还会生成 `app_state.json` 和 `stats.json`；这些文件属于本地运行数据，已被 Git 忽略。配置更新前会保留 `config.json.bak`，主文件损坏时尝试恢复。
 
@@ -132,7 +145,7 @@ py scripts\monitor_performance.py --pid 1234 --duration 600 --interval 5 --outpu
 python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest
 ```
 
-最近一次结果：`280 passed in 1.96s`（本次构建配置改动后重跑）。
+最近一次回归：`268 passed in 2.90s`（2026-10-21，安装包改动后；本机 `.venv` 未安装 pytest，通过临时 `PYTHONPATH` 指向 `.dsh-tmp/test_site` 提供 pytest；常规开发环境装好 pytest 后直接运行上面的命令即可）。
 
 运行前请确保 `.tmp` 目录存在：测试夹具只创建一层临时目录，若 `.tmp` 不存在会报 `FileNotFoundError: [WinError 3]`。
 
@@ -141,8 +154,9 @@ python -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\pytest
 用 PyInstaller 构建 Windows 独立可执行文件：
 
 ```powershell
-pip install pyinstaller
-python -m PyInstaller build.spec
+python -m venv .venv
+.\.venv\Scripts\python -m pip install -r requirements.txt pyinstaller
+.\.venv\Scripts\python -m PyInstaller build.spec
 ```
 
 产物是目录模式（onedir）的 `dist/EyeBreak/` 文件夹，入口为 `dist/EyeBreak/EyeBreak.exe`，依赖文件在 `dist/EyeBreak/_internal/`。把整个 `dist/EyeBreak/` 文件夹复制到其他 Windows 电脑即可运行，不需要额外安装 Python。
@@ -151,7 +165,34 @@ python -m PyInstaller build.spec
 
 `version_info.txt` 是 Windows PE 版本资源（公司名、产品名、文件版本、版权等），由 `build.spec` 的 `version=` 参数写入 EXE。发行版必须带上它：缺少版本信息会让可执行文件被浏览器和杀毒软件的信誉机制当成匿名加壳程序，抬高误报概率。修改版本号时，`version_info.txt` 中的 `filevers`/`prodvers` 与 `FileVersion`/`ProductVersion` 需要与 `VERSION` 保持同步。
 
-注意：`config.json`、`app_state.json` 和 `stats.json` 从应用目录读取。打包后如需预置配置，把它们放在 `EyeBreak.exe` 旁边。
+注意：`config.json`、`app_state.json` 和 `stats.json` 从应用目录读取。打包后如需预置配置，把它们放在 `EyeBreak.exe` 旁边；用安装包安装时，这些文件位于 `%LOCALAPPDATA%\Programs\EyeBreak\`。
+
+### 生成安装包（Inno Setup）
+
+安装包 = PyInstaller onedir 产物 + Inno Setup 外壳。Inno Setup 只是构建工具，不是运行时依赖，只有生成安装包的机器需要安装：
+
+```powershell
+winget install --id JRSoftware.InnoSetup -e
+# 或从 https://jrsoftware.org/isdl.php 下载 Inno Setup 6.3+
+```
+
+然后一条命令完成 PyInstaller 构建和安装包编译：
+
+```powershell
+.\scripts\build_installer.ps1
+# 只重编安装包、复用已有 dist\EyeBreak\：加 -SkipAppBuild
+```
+
+产物是 `dist\installer\EyeBreak-Setup-<version>.exe`，版本号取自 `VERSION`。脚本会先校验 `VERSION` 与 `version_info.txt` 的 `filevers` 一致（不一致直接失败），再调用 `.venv` 里的 PyInstaller 和 `ISCC.exe`，最后打印安装包大小与 SHA-256。
+
+安装包行为：
+
+* 按用户安装到 `{localappdata}\Programs\EyeBreak`，`PrivilegesRequired=lowest`，全程不弹 UAC。不要改成 `Program Files`：程序会往自己目录写 `config.json`，普通用户对 `Program Files` 没有写权限，改设置会失败。
+* 必建开始菜单快捷方式；桌面快捷方式默认不勾选；安装完成后可勾选立即启动。
+* 安装或升级时如果 EyeBreak 正在运行，安装器会通过程序的单实例互斥量提示先退出，避免覆盖被占用的文件。
+* 卸载会删除运行期生成的 `config.json`、`config.json.bak`、`app_state.json`、`stats.json`，并清理 `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` 和 `StartupApproved\Run` 下的 `EyeBreak` 值。
+* 安装向导界面是英文：Inno Setup 不自带简体中文语言文件。需要中文向导时，把 `ChineseSimplified.isl` 放进 Inno Setup 的 `Languages` 目录，并在 `installer.iss` 增加 `[Languages]` 段。
+* 安装包和 EXE 一样未做代码签名，首次运行仍可能触发 SmartScreen“未知发布者”。`installer.iss` 已写入安装包的版本资源（公司、产品、版本），与 EXE 的做法一致。
 
 环境说明：
 
@@ -236,6 +277,13 @@ python -m PyInstaller build.spec
 * “开机自启”切换 Windows 当前用户注册表启动项。
 * “退出”结束程序并移除托盘图标。
 
+如果托盘图标不显示：
+
+1. Windows 11 默认把新图标放进任务栏的 `^` 溢出区；点击 `^`，或在“设置 > 个性化 > 任务栏 > 其他系统托盘图标”中打开 EyeBreak。
+2. 不要使用“以管理员身份运行”，也不要在管理员或受限终端中启动。退出程序后，从文件资源管理器双击 `EyeBreak.exe`。
+3. 如果启动时出现“Windows 没有接受 EyeBreak 的托盘图标”提示，按提示以普通用户权限重新启动；这说明当前进程的完整性级别不适合托盘图标。
+4. 如果 `icacls EyeBreak.exe` 显示 `Mandatory Label\Low Mandatory Level`，说明文件位于受限工作区（例如 DSH 的 `workspace-write` 工作区）。把整个 `dist\EyeBreak` 文件夹**复制**到桌面或普通目录，再从副本启动；不要直接移动，以免 Low 标签跟着文件走。
+
 ### 设置窗口
 
 * 托盘“设置”只打开一个设置窗口；再次点击会聚焦已有窗口。
@@ -251,6 +299,7 @@ python -m PyInstaller build.spec
 
 ### 图标检查
 
+* 托盘、标题栏和任务栏显示新版深青渐变眼睛图标，16/20/24/32 像素下仍能辨认眼睛轮廓。
 * 托盘图标显示正常。
 * 提醒窗口标题栏显示 EyeBreak 图标。
 * Windows 任务栏显示 EyeBreak 图标，而不是默认 Python 图标。
@@ -273,7 +322,7 @@ python -m PyInstaller build.spec
 
 ## 下一步
 
-当前最新发布是 `V3.3`，发布记录以 [GitHub Releases](https://github.com/sAchNMN/EyeBreak/releases) 页面为准。下一步可以继续做更细的用户体验优化，或准备 Windows 安装包。
+当前最新发布是 `V3.3`，发布记录以 [GitHub Releases](https://github.com/sAchNMN/EyeBreak/releases) 页面为准。安装包已能在本地生成（`dist\installer\EyeBreak-Setup-3.3.exe`），但尚未作为 Release 资产发布；下一步可以手动验收安装包，或继续做更细的用户体验优化。
 
 `V3.3` 是 `V3.2` 之后的一次**打包配置改动**：可执行文件补上了 Windows 版本资源（公司名、产品名、文件版本、版权），用于降低被浏览器和杀毒软件的信誉机制当成匿名加壳程序而误报的概率。功能行为与 `V3.2` 一致。
 
