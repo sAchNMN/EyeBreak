@@ -3,8 +3,6 @@
 The bridge subscribes to domain events published by the engine and
 updates UI widgets accordingly. It also routes user actions from the
 tray icon / settings window back to the engine.
-
-This is the last piece that replaces ReminderTimer's God-Class wiring.
 """
 
 from __future__ import annotations
@@ -16,14 +14,12 @@ from collections.abc import Callable
 from app.config import AppConfig, save_config
 from app.core.event_bus import EventBus
 from app.core.events import (
-    ConfigChanged,
     FloatingCountdownToggled,
     FullscreenDetected,
     FullscreenEnded,
     IdleDetected,
     IdleEnded,
     Paused,
-    ReminderDismissed,
     ReminderTriggered,
     Resumed,
     TodayPauseEnded,
@@ -73,6 +69,11 @@ class EyeBreakBridge:
 
         # Unsubscribe handles
         self._unsubs: list[Callable[[], None]] = []
+
+        # Tray startup diagnostics
+        self._tray_check_attempts = 0
+        self._tray_warning_shown = False
+        self._tray_warning_dialog: tk.Toplevel | None = None
 
     # ── Build & wire ─────────────────────────────────────────────
 
@@ -129,15 +130,81 @@ class EyeBreakBridge:
             on_exit=lambda: self._ui_thread(self.engine.request_exit),
         )
         self.tray.start()
+        self.root.after(700, self._check_tray_status)
+
+    def _check_tray_status(self) -> None:
+        """Warn when Windows rejects the tray icon instead of failing silently."""
+        if not self.tray or self._tray_warning_shown:
+            return
+
+        status = self.tray.last_notify_result()
+        if status is None:
+            self._tray_check_attempts += 1
+            if self._tray_check_attempts < 6:
+                self.root.after(400, self._check_tray_status)
+            return
+
+        result, _error = status
+        if result:
+            return
+
+        self._tray_warning_shown = True
+        self._show_tray_warning()
+
+    def _show_tray_warning(self) -> None:
+        """Show a reliable Tk dialog.
+
+        ``tkinter.messagebox`` returns immediately when the app already owns an
+        override-redirect topmost window (the floating countdown), so use a
+        plain Toplevel instead.
+        """
+        dialog = tk.Toplevel(self.root)
+        self._tray_warning_dialog = dialog
+        dialog.title("EyeBreak 托盘图标")
+        dialog.resizable(False, False)
+        dialog.attributes("-topmost", True)
+        dialog.protocol("WM_DELETE_WINDOW", dialog.destroy)
+
+        body = tk.Frame(dialog, padx=18, pady=14)
+        body.pack(fill="both", expand=True)
+        tk.Label(
+            body,
+            text=(
+                "Windows 没有接受 EyeBreak 的托盘图标。\n\n"
+                "请退出 EyeBreak，然后从文件资源管理器双击 EyeBreak.exe 重新启动；"
+                "不要使用“以管理员身份运行”，也不要在管理员或受限终端中启动。\n\n"
+                "如果 icacls EyeBreak.exe 显示 Low Mandatory Level，"
+                "说明文件在受限工作区；请把整个 EyeBreak 文件夹复制到桌面或普通目录，"
+                "再从副本启动。\n\n"
+                "如果图标只是被 Windows 隐藏，请点击任务栏的 ^，"
+                "或在“设置 > 个性化 > 任务栏 > 其他系统托盘图标”中打开 EyeBreak。"
+            ),
+            justify="left",
+            anchor="w",
+            wraplength=460,
+        ).pack(fill="x")
+        tk.Button(
+            body,
+            text="知道了",
+            width=10,
+            command=dialog.destroy,
+        ).pack(pady=(14, 0))
+
+        dialog.update_idletasks()
+        width = dialog.winfo_width()
+        height = dialog.winfo_height()
+        x = (dialog.winfo_screenwidth() - width) // 2
+        y = (dialog.winfo_screenheight() - height) // 2
+        dialog.geometry(f"+{x}+{y}")
+        dialog.lift()
+        dialog.focus_force()
+        dialog.grab_set()
 
     def _wire_events(self) -> None:
         """Subscribe to engine events and keep unsubscribe handles."""
         self._unsubs.append(self.bus.subscribe(Tick, self._on_tick))
         self._unsubs.append(
             self.bus.subscribe(ReminderTriggered, self._on_reminder_triggered)
-        )
-        self._unsubs.append(
-            self.bus.subscribe(ReminderDismissed, self._on_reminder_dismissed)
         )
         self._unsubs.append(self.bus.subscribe(Paused, self._on_paused))
         self._unsubs.append(self.bus.subscribe(Resumed, self._on_resumed))
@@ -162,9 +229,6 @@ class EyeBreakBridge:
             self.bus.subscribe(
                 FloatingCountdownToggled, self._on_floating_toggled
             )
-        )
-        self._unsubs.append(
-            self.bus.subscribe(ConfigChanged, self._on_config_changed)
         )
 
     # ── Tick → floating window update ────────────────────────────
@@ -191,9 +255,6 @@ class EyeBreakBridge:
             on_complete=self.engine.complete_reminder,
             on_pause_today=self.engine.pause_today,
         ).show()
-
-    def _on_reminder_dismissed(self, event: ReminderDismissed) -> None:
-        pass  # nothing extra needed — engine already rescheduled
 
     # ── Status label updates ─────────────────────────────────────
 
@@ -241,9 +302,11 @@ class EyeBreakBridge:
             self.stats.reset,
         )
         self.settings.show()
+
     def activate_existing_session(self) -> None:
         """Bring the existing session settings window to the foreground."""
         self._open_settings()
+
     def _save_settings(self, config: AppConfig) -> None:
         self.engine.save_config(config)
         save_config(config)  # persist to disk
@@ -259,12 +322,6 @@ class EyeBreakBridge:
             self.floating.set_enabled(event.enabled)
         if self.tray:
             self.tray.update_menu()
-
-    # ── Config changed ──────────────────────────────────────────
-
-    def _on_config_changed(self, event: ConfigChanged) -> None:
-        """React when config is updated (currently a no-op beyond engine)."""
-        pass
 
     # ── Main tick loop ──────────────────────────────────────────
 

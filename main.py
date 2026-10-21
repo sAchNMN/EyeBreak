@@ -1,14 +1,8 @@
 """EyeBreak — 护眼休息提醒工具。
 
-Entry point with dependency-injection wiring (Phase 4 architecture).
-Replaces the old God-class ReminderTimer with an event-driven pipeline:
-
-    Config/State load
-        → EventBus + StateMachine
-        → Platform adapters
-        → TimerEngine (pure business logic)
-        → EyeBreakBridge (UI wiring)
-        → tkinter mainloop
+Entry point. Loads configuration and state, wires the event bus, state
+machine, platform adapters, timer engine, and Tkinter bridge, then starts
+the UI loop.
 """
 
 import tkinter as tk
@@ -41,7 +35,7 @@ def main() -> None:
 def _run_primary_instance(single_instance: SingleInstanceManager) -> None:
     # ── Infrastructure ──────────────────────────────────────────
     bus = EventBus()
-    sm = StateMachine(bus)
+    sm = StateMachine()
 
     # ── Platform adapters ───────────────────────────────────────
     idle_detector = IdleDetectorAdapter()

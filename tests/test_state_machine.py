@@ -2,8 +2,6 @@
 
 import pytest
 
-from app.core.event_bus import EventBus
-from app.core.events import StateChanged
 from app.core.state_machine import IllegalTransition, StateMachine, TimerState
 
 
@@ -11,12 +9,12 @@ from app.core.state_machine import IllegalTransition, StateMachine, TimerState
 
 
 def test_default_initial_state_is_running() -> None:
-    sm = StateMachine(EventBus())
+    sm = StateMachine()
     assert sm.current_state is TimerState.RUNNING
 
 
 def test_custom_initial_state() -> None:
-    sm = StateMachine(EventBus(), initial=TimerState.PAUSED)
+    sm = StateMachine(initial=TimerState.PAUSED)
     assert sm.current_state is TimerState.PAUSED
 
 
@@ -51,7 +49,7 @@ def test_custom_initial_state() -> None:
     ],
 )
 def test_legal_transition_succeeds(from_state: TimerState, to_state: TimerState) -> None:
-    sm = StateMachine(EventBus(), initial=from_state)
+    sm = StateMachine(initial=from_state)
     assert sm.transition_to(to_state) is True
     assert sm.current_state is to_state
 
@@ -82,7 +80,7 @@ def test_legal_transition_succeeds(from_state: TimerState, to_state: TimerState)
     ],
 )
 def test_illegal_transition_raises(from_state: TimerState, to_state: TimerState) -> None:
-    sm = StateMachine(EventBus(), initial=from_state)
+    sm = StateMachine(initial=from_state)
     with pytest.raises(IllegalTransition) as exc_info:
         sm.transition_to(to_state)
     assert exc_info.value.from_state is from_state
@@ -96,72 +94,26 @@ def test_illegal_transition_raises(from_state: TimerState, to_state: TimerState)
 
 @pytest.mark.parametrize("state", list(TimerState))
 def test_same_state_transition_is_noop(state: TimerState) -> None:
-    sm = StateMachine(EventBus(), initial=state)
+    sm = StateMachine(initial=state)
     assert sm.transition_to(state) is True
     assert sm.current_state is state
-
-
-# ── Event publishing ────────────────────────────────────────────
-
-
-def test_transition_publishes_state_changed_event() -> None:
-    bus = EventBus()
-    sm = StateMachine(bus, initial=TimerState.RUNNING)
-    events: list[StateChanged] = []
-    bus.subscribe(StateChanged, events.append)
-
-    sm.transition_to(TimerState.PAUSED)
-
-    assert len(events) == 1
-    assert events[0].old_state == "RUNNING"
-    assert events[0].new_state == "PAUSED"
-
-
-def test_noop_transition_does_not_publish_event() -> None:
-    bus = EventBus()
-    sm = StateMachine(bus, initial=TimerState.RUNNING)
-    events: list[StateChanged] = []
-    bus.subscribe(StateChanged, events.append)
-
-    sm.transition_to(TimerState.RUNNING)
-
-    assert events == []
-
-
-def test_chained_transitions_publish_in_order() -> None:
-    bus = EventBus()
-    sm = StateMachine(bus, initial=TimerState.RUNNING)
-    events: list[StateChanged] = []
-    bus.subscribe(StateChanged, events.append)
-
-    sm.transition_to(TimerState.IDLE)
-    sm.transition_to(TimerState.RUNNING)
-    sm.transition_to(TimerState.SHOWING_REMINDER)
-    sm.transition_to(TimerState.RUNNING)
-
-    assert [e.new_state for e in events] == [
-        "IDLE",
-        "RUNNING",
-        "SHOWING_REMINDER",
-        "RUNNING",
-    ]
 
 
 # ── can_transition_to ───────────────────────────────────────────
 
 
 def test_can_transition_to_returns_true_for_legal() -> None:
-    sm = StateMachine(EventBus(), initial=TimerState.RUNNING)
+    sm = StateMachine(initial=TimerState.RUNNING)
     assert sm.can_transition_to(TimerState.PAUSED) is True
 
 
 def test_can_transition_to_returns_false_for_illegal() -> None:
-    sm = StateMachine(EventBus(), initial=TimerState.IDLE)
+    sm = StateMachine(initial=TimerState.IDLE)
     assert sm.can_transition_to(TimerState.FULLSCREEN) is False
 
 
 def test_can_transition_to_returns_true_for_same_state() -> None:
-    sm = StateMachine(EventBus(), initial=TimerState.PAUSED)
+    sm = StateMachine(initial=TimerState.PAUSED)
     assert sm.can_transition_to(TimerState.PAUSED) is True
 
 
@@ -169,18 +121,18 @@ def test_can_transition_to_returns_true_for_same_state() -> None:
 
 
 def test_is_terminal_false_before_exit() -> None:
-    sm = StateMachine(EventBus(), initial=TimerState.RUNNING)
+    sm = StateMachine(initial=TimerState.RUNNING)
     assert sm.is_terminal is False
 
 
 def test_is_terminal_true_after_exit() -> None:
-    sm = StateMachine(EventBus(), initial=TimerState.RUNNING)
+    sm = StateMachine(initial=TimerState.RUNNING)
     sm.transition_to(TimerState.EXITED)
     assert sm.is_terminal is True
 
 
 def test_cannot_leave_exited_state() -> None:
-    sm = StateMachine(EventBus(), initial=TimerState.EXITED)
+    sm = StateMachine(initial=TimerState.EXITED)
     with pytest.raises(IllegalTransition):
         sm.transition_to(TimerState.RUNNING)
 
@@ -190,8 +142,7 @@ def test_cannot_leave_exited_state() -> None:
 
 def test_typical_work_session_cycle() -> None:
     """Simulates: run → idle → run → reminder → run → pause → run → exit."""
-    bus = EventBus()
-    sm = StateMachine(bus, initial=TimerState.RUNNING)
+    sm = StateMachine(initial=TimerState.RUNNING)
 
     sm.transition_to(TimerState.IDLE)         # User walks away
     sm.transition_to(TimerState.RUNNING)      # User returns
@@ -206,7 +157,7 @@ def test_typical_work_session_cycle() -> None:
 
 def test_break_now_from_paused() -> None:
     """User pauses, then hits 'break now' from the tray."""
-    sm = StateMachine(EventBus(), initial=TimerState.PAUSED)
+    sm = StateMachine(initial=TimerState.PAUSED)
     sm.transition_to(TimerState.SHOWING_REMINDER)
     sm.transition_to(TimerState.RUNNING)
     assert sm.current_state is TimerState.RUNNING
@@ -214,6 +165,6 @@ def test_break_now_from_paused() -> None:
 
 def test_exit_from_reminder() -> None:
     """User clicks 'exit' from the reminder window."""
-    sm = StateMachine(EventBus(), initial=TimerState.SHOWING_REMINDER)
+    sm = StateMachine(initial=TimerState.SHOWING_REMINDER)
     sm.transition_to(TimerState.EXITED)
     assert sm.is_terminal is True

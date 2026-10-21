@@ -1,4 +1,4 @@
-﻿import json
+import json
 
 from app.state import APP_STATE_PATH, AppState, load_app_state, save_app_state
 
@@ -51,7 +51,6 @@ def test_load_app_state_falls_back_for_invalid_file(tmp_path) -> None:
 def test_save_app_state_writes_persistent_floating_state(tmp_path) -> None:
     state_path = tmp_path / "app_state.json"
     state = AppState(
-        is_running=False,
         paused_until=123,
         next_reminder_at=456,
         floating_countdown_enabled=False,

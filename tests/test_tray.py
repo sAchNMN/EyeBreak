@@ -1,12 +1,6 @@
-﻿from app.icons import create_icon_image
-from app.tray import (
-    PAUSE_OPTIONS_MINUTES,
-    _format_pause_label,
-    _pause_menu,
-    _today_pause_action,
-    _settings_action,
-    _toggle_floating_action,
-)
+from app.icons import create_icon_image
+from app.reminder_window import format_pause_label
+from app.tray import PAUSE_OPTIONS_MINUTES, _action, _pause_menu
 
 
 def test_create_icon_image_has_expected_shape() -> None:
@@ -21,9 +15,9 @@ def test_pause_options_cover_short_and_long_breaks() -> None:
 
 
 def test_format_pause_label_uses_minutes_and_hours() -> None:
-    assert _format_pause_label(15) == "15分钟"
-    assert _format_pause_label(60) == "1小时"
-    assert _format_pause_label(120) == "2小时"
+    assert format_pause_label(15) == "15分钟"
+    assert format_pause_label(60) == "1小时"
+    assert format_pause_label(120) == "2小时"
 
 
 def test_pause_menu_actions_pass_selected_minutes() -> None:
@@ -36,27 +30,9 @@ def test_pause_menu_actions_pass_selected_minutes() -> None:
     assert selected_minutes == list(PAUSE_OPTIONS_MINUTES)
 
 
-def test_toggle_floating_action_calls_callback() -> None:
+def test_action_calls_callback() -> None:
     calls: list[bool] = []
-    action = _toggle_floating_action(lambda: calls.append(True))
-
-    action(None, None)
-
-    assert calls == [True]
-
-
-def test_settings_action_calls_callback() -> None:
-    calls: list[bool] = []
-    action = _settings_action(lambda: calls.append(True))
-
-    action(None, None)
-
-    assert calls == [True]
-
-
-def test_today_pause_action_calls_callback() -> None:
-    calls: list[bool] = []
-    action = _today_pause_action(lambda: calls.append(True))
+    action = _action(lambda: calls.append(True))
 
     action(None, None)
 

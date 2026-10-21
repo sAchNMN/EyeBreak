@@ -6,10 +6,8 @@ and that simple fake implementations satisfy them.
 
 from app.platform.protocols import (
     AutostartManager,
-    ConfigRepository,
     FullscreenDetector,
     IdleDetector,
-    StateRepository,
 )
 
 
@@ -43,30 +41,6 @@ class FakeAutostartManager:
         self._enabled = enabled
 
 
-class FakeConfigRepository:
-    def __init__(self, config=None) -> None:
-        self._config = config
-        self.saved: list = []
-
-    def load(self):
-        return self._config
-
-    def save(self, config) -> None:
-        self.saved.append(config)
-
-
-class FakeStateRepository:
-    def __init__(self, state=None) -> None:
-        self._state = state
-        self.saved: list = []
-
-    def load(self):
-        return self._state
-
-    def save(self, state) -> None:
-        self.saved.append(state)
-
-
 # ── Protocol isinstance checks ──────────────────────────────────
 
 
@@ -87,22 +61,6 @@ def test_fake_autostart_manager_satisfies_protocol() -> None:
     assert isinstance(manager, AutostartManager)
     manager.set_enabled(True)
     assert manager.is_enabled() is True
-
-
-def test_fake_config_repository_satisfies_protocol() -> None:
-    repo = FakeConfigRepository(config={"interval": 25})
-    assert isinstance(repo, ConfigRepository)
-    assert repo.load() == {"interval": 25}
-    repo.save({"interval": 10})
-    assert repo.saved == [{"interval": 10}]
-
-
-def test_fake_state_repository_satisfies_protocol() -> None:
-    repo = FakeStateRepository(state={"floating": True})
-    assert isinstance(repo, StateRepository)
-    assert repo.load() == {"floating": True}
-    repo.save({"floating": False})
-    assert repo.saved == [{"floating": False}]
 
 
 # ── Existing implementations satisfy protocols ──────────────────

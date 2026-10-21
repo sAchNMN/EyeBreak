@@ -1,11 +1,8 @@
 """Protocol interfaces for platform-specific operations.
 
 The core domain layer depends on these protocols, never on concrete
-implementations. This allows:
-
-- Unit-testing the core without Windows APIs (inject a fake).
-- Adding macOS/Linux implementations later without touching core.
-- Clear compile-time documentation of what the core needs.
+implementations. This allows unit-testing the core without Windows APIs
+(inject a fake) and documents exactly what the core needs.
 """
 
 from __future__ import annotations
@@ -41,30 +38,4 @@ class AutostartManager(Protocol):
 
     def set_enabled(self, enabled: bool) -> None:
         """Enable or disable autostart registration."""
-        ...
-
-
-@runtime_checkable
-class ConfigRepository(Protocol):
-    """Loads and persists user configuration."""
-
-    def load(self) -> object:
-        """Load and return the configuration object."""
-        ...
-
-    def save(self, config: object) -> None:
-        """Persist the configuration object."""
-        ...
-
-
-@runtime_checkable
-class StateRepository(Protocol):
-    """Loads and persists runtime state (floating window position, etc.)."""
-
-    def load(self) -> object:
-        """Load and return the runtime state object."""
-        ...
-
-    def save(self, state: object) -> None:
-        """Persist the runtime state object."""
         ...

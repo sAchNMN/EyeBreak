@@ -153,20 +153,19 @@ def test_clear_removes_all_subscribers() -> None:
 
 def test_real_domain_events_flow_through_bus() -> None:
     """Smoke test: actual domain event types should work identically."""
-    from app.core.events import ReminderTriggered, StateChanged, Tick
+    from app.core.events import ReminderTriggered, Resumed, Tick
 
     bus = EventBus()
     ticks: list[Tick] = []
-    state_changes: list[StateChanged] = []
+    resumes: list[Resumed] = []
 
     bus.subscribe(Tick, ticks.append)
-    bus.subscribe(StateChanged, state_changes.append)
+    bus.subscribe(Resumed, resumes.append)
 
     bus.publish(Tick(remaining_seconds=59.0, display_text="00:59", display_color="#f9fafb"))
-    bus.publish(StateChanged(old_state="RUNNING", new_state="PAUSED"))
+    bus.publish(Resumed())
     bus.publish(ReminderTriggered(duration_seconds=20, pause_minutes=60))  # No subscriber.
 
     assert len(ticks) == 1
     assert ticks[0].display_text == "00:59"
-    assert len(state_changes) == 1
-    assert state_changes[0].new_state == "PAUSED"
+    assert len(resumes) == 1

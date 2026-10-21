@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import logging
 from datetime import date
@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class AppState:
-    is_running: bool = True
     paused_until: float = 0.0
     next_reminder_at: float = 0.0
     floating_countdown_enabled: bool = True

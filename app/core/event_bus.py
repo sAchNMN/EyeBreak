@@ -18,8 +18,6 @@ from collections.abc import Callable
 from typing import TypeVar
 
 from app.core.events import (
-    ConfigChanged,
-    ExitRequested,
     FloatingCountdownToggled,
     FullscreenDetected,
     FullscreenEnded,
@@ -30,9 +28,7 @@ from app.core.events import (
     ReminderDismissed,
     ReminderTriggered,
     Resumed,
-    StateChanged,
     Tick,
-    TimerStarted,
     TimerStopped,
     TodayPauseEnded,
     TodayPauseStarted,
@@ -42,22 +38,18 @@ logger = logging.getLogger(__name__)
 
 # All event types — used for type checking at registration time.
 Event = (
-    TimerStarted
-    | TimerStopped
+    TimerStopped
     | Tick
     | ReminderTriggered
     | ReminderDismissed
     | ReminderCompleted
-    | StateChanged
     | IdleDetected
     | IdleEnded
     | FullscreenDetected
     | FullscreenEnded
     | Paused
     | Resumed
-    | ConfigChanged
     | FloatingCountdownToggled
-    | ExitRequested
     | TodayPauseStarted
     | TodayPauseEnded
 )

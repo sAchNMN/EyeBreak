@@ -15,7 +15,6 @@ import pytest
 from app.config import AppConfig
 from app.core.event_bus import EventBus
 from app.core.events import (
-    ConfigChanged,
     FloatingCountdownToggled,
     FullscreenDetected,
     FullscreenEnded,
@@ -28,7 +27,6 @@ from app.core.events import (
     Resumed,
     Tick,
     TimerStopped,
-    TimerStarted,
     TodayPauseEnded,
     TodayPauseStarted,
 )
@@ -90,7 +88,7 @@ def engine(bus: EventBus) -> TimerEngine:
     autostart = FakeAutostartManager()
     config = AppConfig()
     state = AppState(next_reminder_at=600.0)
-    sm = StateMachine(bus)
+    sm = StateMachine()
     return TimerEngine(
         bus=bus,
         state_machine=sm,
@@ -124,18 +122,15 @@ def test_format_seconds_clamps_negative() -> None:
 
 
 def test_start_schedules_a_fresh_countdown_for_the_new_session(
-    bus: EventBus, engine: TimerEngine
+    engine: TimerEngine,
 ) -> None:
     engine.state.paused_until = 250.0
     engine.state.next_reminder_at = 0.0
-    events: list[TimerStarted] = []
-    bus.subscribe(TimerStarted, events.append)
 
     engine.start(now=100.0)
 
     assert engine.state.paused_until == 0.0
     assert engine.state.next_reminder_at == 100.0 + 25 * 60
-    assert events == [TimerStarted()]
 
 
 # ── tick: normal flow ────────────────────────────────────────────
@@ -535,22 +530,16 @@ def test_skip_reminder_noop_when_not_showing(
 # ── save_config ──────────────────────────────────────────────────
 
 
-def test_save_config_updates_internal_config_and_publishes(
-    bus: EventBus, engine: TimerEngine, monkeypatch
+def test_save_config_updates_internal_config(
+    engine: TimerEngine, monkeypatch
 ) -> None:
     monkeypatch.setattr(time, "monotonic", lambda: 100.0)
     new_config = AppConfig(reminder_interval_minutes=10, break_duration_seconds=30)
-    events: list = []
-    bus.subscribe(ConfigChanged, events.append)
 
     engine.save_config(new_config)
 
     assert engine.config.reminder_interval_minutes == 10
     assert engine.config.break_duration_seconds == 30
-    assert len(events) == 1
-    ev = events[0]
-    assert ev.reminder_interval_minutes == 10
-    assert ev.break_duration_seconds == 30
 
 
 def test_save_config_reschedules_when_not_paused(

@@ -4,16 +4,13 @@ Replaces the implicit boolean-flag soup (is_showing_reminder, _was_idle,
 _was_fullscreen, paused_until) with a single authoritative state enum
 and a validated transition table.
 
-Every transition publishes a ``StateChanged`` event on the EventBus,
-so UI components can react without being called directly.
+The engine reads ``current_state``; transitions are validated here so
+invalid mode changes fail loudly instead of silently corrupting state.
 """
 
 from __future__ import annotations
 
 from enum import Enum, auto
-
-from app.core.event_bus import EventBus
-from app.core.events import StateChanged
 
 
 class TimerState(Enum):
@@ -77,8 +74,7 @@ class StateMachine:
     ``current_state``; all state writes go through ``transition_to``.
     """
 
-    def __init__(self, bus: EventBus, initial: TimerState = TimerState.RUNNING) -> None:
-        self._bus = bus
+    def __init__(self, initial: TimerState = TimerState.RUNNING) -> None:
         self._state = initial
 
     @property
@@ -89,10 +85,7 @@ class StateMachine:
         """Attempt to transition to *new_state*.
 
         Returns ``True`` if the transition succeeded.
-        Returns ``False`` if the transition is not allowed (no exception
-        raised — callers can choose to ignore or log).
-
-        Publishes a ``StateChanged`` event on success.
+        Raises ``IllegalTransition`` if the transition is not allowed.
         """
         if self._state is new_state:
             return True  # No-op transition is always legal.
@@ -101,9 +94,7 @@ class StateMachine:
         if key not in _ALLOWED_TRANSITIONS:
             raise IllegalTransition(self._state, new_state)
 
-        old = self._state
         self._state = new_state
-        self._bus.publish(StateChanged(old_state=old.name, new_state=new_state.name))
         return True
 
     def can_transition_to(self, new_state: TimerState) -> bool:

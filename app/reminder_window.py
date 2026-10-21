@@ -1,9 +1,15 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import tkinter as tk
 from collections.abc import Callable
 
 from app.icons import apply_window_icon
+
+
+def format_pause_label(minutes: int) -> str:
+    if minutes >= 60 and minutes % 60 == 0:
+        return f"{minutes // 60}小时"
+    return f"{minutes}分钟"
 
 
 class ReminderWindow:
@@ -188,9 +194,7 @@ class ReminderWindow:
         return "break"
 
     def _pause_button_text(self) -> str:
-        if self.pause_minutes >= 60 and self.pause_minutes % 60 == 0:
-            return f"暂停{self.pause_minutes // 60}小时"
-        return f"暂停{self.pause_minutes}分钟"
+        return f"暂停{format_pause_label(self.pause_minutes)}"
 
     def _clamp_pause_minutes(self, pause_minutes: int) -> int:
         return max(

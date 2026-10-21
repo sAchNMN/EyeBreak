@@ -14,14 +14,12 @@ import pytest
 from app.config import AppConfig
 from app.core.event_bus import EventBus
 from app.core.events import (
-    ConfigChanged,
     FloatingCountdownToggled,
     FullscreenDetected,
     FullscreenEnded,
     IdleDetected,
     IdleEnded,
     Paused,
-    ReminderDismissed,
     ReminderTriggered,
     Resumed,
     Tick,
@@ -85,7 +83,7 @@ def bus() -> EventBus:
 
 @pytest.fixture
 def engine(bus: EventBus) -> TimerEngine:
-    sm = StateMachine(bus)
+    sm = StateMachine()
     idle = _StubIdleDetector()
     fs = _StubFullscreenDetector()
     autostart = _StubAutostartManager()
@@ -160,10 +158,6 @@ def test_on_reminder_triggered_stale_event(bridge) -> None:
     """Should not open window if engine not in SHOWING_REMINDER."""
     event = ReminderTriggered(duration_seconds=20, pause_minutes=5.0)
     bridge._on_reminder_triggered(event)  # should not crash, no window
-
-
-def test_on_reminder_dismissed_is_noop(bridge) -> None:
-    bridge._on_reminder_dismissed(ReminderDismissed())  # should not crash
 
 
 # ── Status label updates ────────────────────────────────────────────
@@ -262,19 +256,6 @@ def test_on_floating_toggled_no_widgets(bridge) -> None:
     bridge._on_floating_toggled(FloatingCountdownToggled(enabled=True))
 
 
-# ── Config changed handler ─────────────────────────────────────────
-
-
-def test_on_config_changed_is_safe(bridge) -> None:
-    bridge._on_config_changed(ConfigChanged(
-        reminder_interval_minutes=10,
-        break_duration_seconds=30,
-        pause_minutes=15.0,
-        idle_threshold_minutes=3.0,
-        fullscreen_detection_enabled=True,
-    ))
-
-
 # ── Main tick loop ──────────────────────────────────────────────────
 
 
@@ -358,7 +339,6 @@ def test_bridge_subscribes_to_all_events(
     events: list = [
         Tick(120.0, "02:00", "#fff"),
         ReminderTriggered(20, 5.0),
-        ReminderDismissed(),
         Paused(paused_until=100.0, pause_minutes=5.0),
         Resumed(),
         IdleDetected(),
@@ -367,7 +347,6 @@ def test_bridge_subscribes_to_all_events(
         FullscreenEnded(),
         TimerStopped(),
         FloatingCountdownToggled(True),
-        ConfigChanged(10, 30, 15.0, 3.0, True),
     ]
     for event in events:
         bus.publish(event)  # should not crash or raise

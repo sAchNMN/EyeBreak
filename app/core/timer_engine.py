@@ -7,7 +7,7 @@ Dependencies
 ------------
 - EventBus, StateMachine (infrastructure)
 - IdleDetector, FullscreenDetector, AutostartManager (platform protocols)
-- AppConfig, AppState (domain objects — still owned here until Phase 4)
+- AppConfig, AppState (domain objects)
 
 Zero imports from tkinter, pystray, or any UI/platform concrete module.
 """
@@ -20,7 +20,6 @@ from typing import Callable
 
 from app.core.event_bus import EventBus
 from app.core.events import (
-    ConfigChanged,
     FloatingCountdownToggled,
     FullscreenDetected,
     FullscreenEnded,
@@ -33,7 +32,6 @@ from app.core.events import (
     ReminderTriggered,
     Resumed,
     Tick,
-    TimerStarted,
     TimerStopped,
     TodayPauseEnded,
     TodayPauseStarted,
@@ -51,9 +49,8 @@ from app.platform.protocols import (
 def format_seconds(total_seconds: float) -> str:
     """Format *total_seconds* as ``MM:SS``, rounding up.
 
-    Clamps negative values to ``00:00``.
-    This is a pure function (no state, no IO) — kept here for now;
-    will be deduplicated with app/timer.py in Phase 4.
+    Clamps negative values to ``00:00``. This is a pure function (no
+    state, no IO).
     """
     clamped_seconds = max(0, int(total_seconds + 0.999))
     minutes, seconds = divmod(clamped_seconds, 60)
@@ -149,7 +146,6 @@ class TimerEngine:
             self._state.next_reminder_at = (
                 now + self._config.reminder_interval_minutes * 60
             )
-        self._bus.publish(TimerStarted())
 
     # ── Main tick (called ~1/s from the UI main loop) ───────────
 
@@ -270,8 +266,7 @@ class TimerEngine:
         """Apply a new configuration and recalculate the schedule.
 
         The caller (UI or infra) is responsible for persisting the
-        config to disk — the engine only updates in-memory state and
-        publishes ConfigChanged for subscribers to act on.
+        config to disk — the engine only updates in-memory state.
         """
         self._config = new_config
         now = time.monotonic()
@@ -281,15 +276,6 @@ class TimerEngine:
             )
         else:
             self._schedule_next_reminder()
-        self._bus.publish(
-            ConfigChanged(
-                reminder_interval_minutes=new_config.reminder_interval_minutes,
-                break_duration_seconds=new_config.break_duration_seconds,
-                pause_minutes=new_config.pause_minutes,
-                idle_threshold_minutes=new_config.idle_threshold_minutes,
-                fullscreen_detection_enabled=new_config.fullscreen_detection_enabled,
-            )
-        )
 
     def toggle_floating_countdown(self) -> None:
         """Toggle the floating countdown visibility flag."""

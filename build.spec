@@ -31,7 +31,6 @@ a = Analysis(
         "app.platform.adapters",
         "app.ui",
         "app.ui.bridge",
-        "app.infra",
         # ── 旧模块（主入口直接或间接使用） ──
         "app.config",
         "app.state",

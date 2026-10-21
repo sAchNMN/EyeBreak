@@ -17,11 +17,6 @@ ReminderSource = Literal["scheduled", "manual"]
 
 
 @dataclass(frozen=True)
-class TimerStarted:
-    """Published when the timer engine begins running."""
-
-
-@dataclass(frozen=True)
 class TimerStopped:
     """Published when the timer engine stops (user exit)."""
 
@@ -82,20 +77,7 @@ class TodayPauseEnded:
     """Published when today's automatic-reminder mute is cleared."""
 
 
-# ── State change events ─────────────────────────────────────────
-
-
-@dataclass(frozen=True)
-class StateChanged:
-    """Published on every state machine transition.
-
-    Attributes:
-        old_state: Previous state name.
-        new_state: Current state name.
-    """
-
-    old_state: str
-    new_state: str
+# ── Suppression events ──────────────────────────────────────────
 
 
 @dataclass(frozen=True)
@@ -136,28 +118,6 @@ class Resumed:
     """Published when the timer resumes from pause."""
 
 
-# ── Config events ───────────────────────────────────────────────
-
-
-@dataclass(frozen=True)
-class ConfigChanged:
-    """Published when user settings are saved.
-
-    Attributes:
-        reminder_interval_minutes: New interval value.
-        break_duration_seconds: New break duration.
-        pause_minutes: New default pause.
-        idle_threshold_minutes: New idle threshold.
-        fullscreen_detection_enabled: New fullscreen flag.
-    """
-
-    reminder_interval_minutes: float
-    break_duration_seconds: int
-    pause_minutes: float
-    idle_threshold_minutes: float
-    fullscreen_detection_enabled: bool
-
-
 # ── UI action events ────────────────────────────────────────────
 
 
@@ -170,8 +130,3 @@ class FloatingCountdownToggled:
     """
 
     enabled: bool
-
-
-@dataclass(frozen=True)
-class ExitRequested:
-    """Published when the user requests exit (tray → quit)."""

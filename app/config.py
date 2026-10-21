@@ -80,6 +80,59 @@ def save_config(config: AppConfig, path: Path = CONFIG_PATH) -> None:
     atomic_write_json(path, payload, backup=True)
 
 
+def parse_config_values(
+    reminder_interval_minutes: str,
+    break_duration_seconds: str,
+    pause_minutes: str,
+    idle_threshold_minutes: str,
+    fullscreen_detection_enabled: bool = True,
+) -> AppConfig:
+    """Parse user-entered settings text into a validated configuration."""
+    config = AppConfig(
+        reminder_interval_minutes=_parse_float(
+            reminder_interval_minutes,
+            "提醒间隔必须大于 0",
+            minimum_inclusive=False,
+        ),
+        break_duration_seconds=_parse_int(
+            break_duration_seconds,
+            "休息时长必须是大于 0 的整数",
+        ),
+        pause_minutes=_parse_float(
+            pause_minutes,
+            "默认暂停必须大于 0",
+            minimum_inclusive=False,
+        ),
+        idle_threshold_minutes=_parse_float(
+            idle_threshold_minutes,
+            "离开检测不能小于 0",
+            minimum_inclusive=True,
+        ),
+        fullscreen_detection_enabled=fullscreen_detection_enabled,
+    )
+    return validate_config(config)
+
+
+def _parse_float(value: str, message: str, *, minimum_inclusive: bool) -> float:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(message) from exc
+    if parsed < 0 or (not minimum_inclusive and parsed == 0):
+        raise ValueError(message)
+    return parsed
+
+
+def _parse_int(value: str, message: str) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(message) from exc
+    if parsed <= 0:
+        raise ValueError(message)
+    return parsed
+
+
 def validate_config(config: AppConfig) -> AppConfig:
     """Validate and return a configuration before it enters the application."""
     _validate_number(

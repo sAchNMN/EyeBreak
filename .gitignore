@@ -1,4 +1,4 @@
-﻿# Python 缓存和测试临时文件
+# Python 缓存和测试临时文件
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -36,6 +36,7 @@ CLAUDE.md
 
 # AI 工具工作状态
 .workbuddy/
+.dsh-tmp/
 
 # PyInstaller 构建产物
 dist/

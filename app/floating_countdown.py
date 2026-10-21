@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import tkinter as tk
 from collections.abc import Callable
@@ -226,29 +226,6 @@ class FloatingCountdownWindow:
         self.root.deiconify()
         self.show()
         self.schedule_hide()
-    def set_paused(self, is_paused: bool) -> None:
-        if not self.status_label:
-            return
-        if is_paused:
-            self.status_label.configure(text="暂停中", fg="#fbbf24")
-            return
-        self.status_label.configure(text="下次护眼提醒", fg="#a7f3d0")
-
-    def set_idle(self, is_idle: bool) -> None:
-        if not self.status_label:
-            return
-        if is_idle:
-            self.status_label.configure(text="已离开", fg="#9ca3af")
-            return
-        self.status_label.configure(text="下次护眼提醒", fg="#a7f3d0")
-
-    def set_fullscreen(self, is_fullscreen: bool) -> None:
-        if not self.status_label:
-            return
-        if is_fullscreen:
-            self.status_label.configure(text="全屏中", fg="#60a5fa")
-            return
-        self.status_label.configure(text="下次护眼提醒", fg="#a7f3d0")
 
     def show(self, _event: tk.Event | None = None) -> None:
         self._cancel_hide()

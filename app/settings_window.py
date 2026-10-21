@@ -4,7 +4,7 @@ import tkinter as tk
 from collections.abc import Callable
 from tkinter import messagebox
 
-from app.config import AppConfig, ConfigValidationError, validate_config
+from app.config import AppConfig, parse_config_values
 from app.icons import apply_window_icon
 from app.stats import UsageStats, format_completion_rate
 
@@ -176,7 +176,7 @@ class SettingsWindow:
 
     def _save(self) -> None:
         try:
-            config = parse_settings_values(
+            config = parse_config_values(
                 self.entries["reminder_interval_minutes"].get(),
                 self.entries["break_duration_seconds"].get(),
                 self.entries["pause_minutes"].get(),
@@ -194,68 +194,6 @@ class SettingsWindow:
         if self.root.winfo_exists():
             self.root.destroy()
         self.on_close()
-
-
-def parse_settings_values(
-    reminder_interval_minutes: str,
-    break_duration_seconds: str,
-    pause_minutes: str,
-    idle_threshold_minutes: str,
-    fullscreen_detection_enabled: bool = True,
-) -> AppConfig:
-    config = AppConfig(
-        reminder_interval_minutes=_positive_float(
-            reminder_interval_minutes,
-            "提醒间隔必须大于 0",
-        ),
-        break_duration_seconds=_positive_int(
-            break_duration_seconds,
-            "休息时长必须是大于 0 的整数",
-        ),
-        pause_minutes=_positive_float(
-            pause_minutes,
-            "默认暂停必须大于 0",
-        ),
-        idle_threshold_minutes=_non_negative_float(
-            idle_threshold_minutes,
-            "离开检测不能小于 0",
-        ),
-        fullscreen_detection_enabled=fullscreen_detection_enabled,
-    )
-    try:
-        return validate_config(config)
-    except ConfigValidationError as exc:
-        raise ValueError(str(exc)) from exc
-
-
-def _positive_float(value: str, message: str) -> float:
-    try:
-        parsed = float(value)
-    except ValueError as exc:
-        raise ValueError(message) from exc
-    if parsed <= 0:
-        raise ValueError(message)
-    return parsed
-
-
-def _positive_int(value: str, message: str) -> int:
-    try:
-        parsed = int(value)
-    except ValueError as exc:
-        raise ValueError(message) from exc
-    if parsed <= 0:
-        raise ValueError(message)
-    return parsed
-
-
-def _non_negative_float(value: str, message: str) -> float:
-    try:
-        parsed = float(value)
-    except ValueError as exc:
-        raise ValueError(message) from exc
-    if parsed < 0:
-        raise ValueError(message)
-    return parsed
 
 
 def _format_number(value: float | int) -> str:
