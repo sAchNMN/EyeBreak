@@ -335,26 +335,27 @@ winget install --id JRSoftware.InnoSetup -e
 
 ## 下一步
 
-当前最新发布是 `V3.4`，发布记录以 [GitHub Releases](https://github.com/sAchNMN/EyeBreak/releases) 页面为准。
+当前最新发布是 `V3.5`，发布记录以 [GitHub Releases](https://github.com/sAchNMN/EyeBreak/releases) 页面为准。
 
-`V3.4` 在 `V3.3` 基础上的变化：
+`V3.5` 在 `V3.4` 基础上的变化：
 
-* 新增 Windows 安装包 `EyeBreak-Setup-3.4.exe`：按当前用户安装、不需要管理员权限，创建开始菜单快捷方式，卸载时清理配置、统计和开机自启项。
-* 应用图标改版：深青渐变底、薄荷色眼睛和琥珀色光点，ICO 覆盖 16–256 共 9 个尺寸。
-* 移除无订阅者的事件、未使用的仓储接口和重复的解析/托盘动作代码，用户可见行为不变。
+* 悬浮窗展开和收起增加约 180 ms 的滑出过渡动画，可在设置中关闭。
+* 新增悬浮窗外观设置：大小 80%–160%、隐藏装饰条宽度 6–40 像素、装饰条颜色（`#RRGGBB` 或颜色选择器）。
+* 外观设置保存后立即应用并写入 `config.json`，旧配置缺少新字段时使用默认值。
+* 设置窗口点击“保存”后保持打开，方便继续调整。
 
 发布资产与校验值：
 
 | 资产 | 大小 | SHA-256 |
 |---|---|---|
-| `EyeBreak-Setup-3.4.exe` | 15,166,751 字节 | `031F3841AB0A2DF93A0E94A24AA07ABE152A42C8C0C9A8445CC677A975A20C4C` |
-| `EyeBreak-v3.4-onedir.zip` | 20,011,718 字节 | `1BF900E9B8999A76C48D5889BC1C621DBD550D9D3E57B4FD4FF0EBF3AD2554C5` |
+| `EyeBreak-Setup-3.5.exe` | 15,176,401 字节 | `6B76E7504E691F23D0B2471AD58FB5A4E732CCD92C7EF965CE0C7CC4B433B496` |
+| `EyeBreak-v3.5-onedir.zip` | 20,021,659 字节 | `73B1C43B7E03C42FB3C83B69D07CD5B857343D2B4A9B642DC1B27D069855B4F0` |
 
 校验下载是否完整：
 
 ```powershell
-Get-FileHash .\EyeBreak-v3.4-onedir.zip -Algorithm SHA256
-Get-FileHash .\EyeBreak-Setup-3.4.exe -Algorithm SHA256
+Get-FileHash .\EyeBreak-v3.5-onedir.zip -Algorithm SHA256
+Get-FileHash .\EyeBreak-Setup-3.5.exe -Algorithm SHA256
 ```
 
 彻底消除此类提示需要为可执行文件添加代码签名，并向杀毒软件厂商提交误报申诉。

@@ -18,12 +18,12 @@ EyeBreak 是面向 Windows 中文用户的护眼休息提醒工具，使用 Pyth
 
 ## 当前版本与发布
 
-* `VERSION`：`V3.4`。`version_info.txt` 中的 `filevers`/`prodvers` 与 `FileVersion`/`ProductVersion` 必须与之一致。
-* 最新 Release：`V3.4` — https://github.com/sAchNMN/EyeBreak/releases/tag/V3.4 （2026-10-21 发布，标记 Latest）
+* `VERSION`：`V3.5`。`version_info.txt` 中的 `filevers`/`prodvers` 与 `FileVersion`/`ProductVersion` 必须与之一致。
+* 最新 Release：`V3.5` — https://github.com/sAchNMN/EyeBreak/releases/tag/V3.5 （2026-10-23 发布，标记 Latest）
 * 发布资产：
-  * `EyeBreak-Setup-3.4.exe`，15,166,751 字节，SHA-256 `031F3841AB0A2DF93A0E94A24AA07ABE152A42C8C0C9A8445CC677A975A20C4C`。按当前用户安装、不弹 UAC，推荐给普通用户。
-  * `EyeBreak-v3.4-onedir.zip`，20,011,718 字节，SHA-256 `1BF900E9B8999A76C48D5889BC1C621DBD550D9D3E57B4FD4FF0EBF3AD2554C5`；包内目录 `EyeBreak-v3.4/`，`EyeBreak.exe` SHA-256 `03D7FC8B2B6A705851E4D47F8F4C6978C42817516DDF9889FB1FE42A8D68BB81`。
-* `V3.4` 与 `V3.3` 的差异：新增 Inno Setup 安装包；应用图标改版（深青渐变 + 9 尺寸 ICO）；移除无订阅者事件、未使用仓储接口和重复的解析/托盘动作代码。用户可见行为不变。
+  * `EyeBreak-Setup-3.5.exe`，15,176,401 字节，SHA-256 `6B76E7504E691F23D0B2471AD58FB5A4E732CCD92C7EF965CE0C7CC4B433B496`。按当前用户安装、不弹 UAC，推荐给普通用户。
+  * `EyeBreak-v3.5-onedir.zip`，20,021,659 字节，SHA-256 `73B1C43B7E03C42FB3C83B69D07CD5B857343D2B4A9B642DC1B27D069855B4F0`；包内目录 `EyeBreak-v3.5/`，`EyeBreak.exe` SHA-256 `6C8F1832D6C8A41EFD6F196DED4BC87779E95EFF62E985A5FAFB5D3D3E430525`。
+* `V3.5` 与 `V3.4` 的差异：悬浮窗展开/收起过渡动画（可关闭）；悬浮窗大小、隐藏装饰条宽度和颜色可配置；设置窗口保存后保持打开。
 * 安装包和 EXE 均未做代码签名。
 * 升级前需要退出正在运行的 EyeBreak：安装器的 `AppMutex` 会检测到运行实例并中止（实测日志为 `Setup has detected that EyeBreak is currently running`），这是刻意行为。
 
@@ -170,7 +170,30 @@ python -m PyInstaller build.spec
 * 安装包只支持按用户安装，不能装到 `Program Files`：程序把 `config.json` 等写在 exe 旁边，普通用户对 `Program Files` 没有写权限。若要支持全机安装，需要先把数据目录迁到 `%APPDATA%`。
 * 卸载会删除 `config.json`、`config.json.bak`、`app_state.json`、`stats.json` 并清理开机自启注册表值，即“卸载即清空设置”；这是刻意行为，不是遗漏。
 * 待办：在没有项目和没有运行中实例的干净环境验证发布包与安装包、固定 `requirements.txt`、申请代码签名。
-* 工作区状态：`.dsh-tmp/` 已被 `.gitignore` 忽略；`dist/`、`build/` 是构建产物（同样被忽略，含 `dist/installer/EyeBreak-Setup-3.4.exe` 和 `dist/EyeBreak-v3.4-onedir.zip`）；`.tmp/` 已清理并保留为空目录供测试命令使用。
+* 工作区状态：`.dsh-tmp/` 已被 `.gitignore` 忽略；`dist/`、`build/` 是构建产物（同样被忽略，含 `dist/installer/EyeBreak-Setup-3.5.exe` 和 `dist/EyeBreak-v3.5-onedir.zip`）；`.tmp/` 已清理并保留为空目录供测试命令使用。
+
+## 本次变更：V3.5 发布（2026-10-23）
+
+发布内容：
+
+* `VERSION` → `V3.5`，`version_info.txt` → `3.5.0.0`，重新构建 `dist\EyeBreak\EyeBreak.exe`。
+* 新的安装包 `dist\installer\EyeBreak-Setup-3.5.exe` 和绿色版 `dist\EyeBreak-v3.5-onedir.zip`（包内目录 `EyeBreak-v3.5/`，结构与 `V3.4` 一致）。
+* `master`、`V3.5` 标签和 GitHub Release 均已更新。
+
+变更：
+
+* 悬浮窗展开/收起增加约 180 ms 的滑出过渡动画，设置中可关闭。
+* 新增悬浮窗大小（80%–160%）、隐藏装饰条宽度（6–40 像素）和颜色设置；保存后立即应用。
+* 设置窗口点击“保存”后保持打开。
+
+验证：
+
+* `.\.venv\Scripts\python.exe -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\release-tests --tb=short` → **302 passed in 2.23s**。
+* `.\scripts\build_installer.ps1` → PyInstaller **Build complete** + ISCC **Successful compile (11.188 sec)**；`EyeBreak.exe` PE `FileVersion`/`ProductVersion` 为 3.5.0.0。
+* 安装包 15,176,401 字节，SHA-256 `6B76E7504E691F23D0B2471AD58FB5A4E732CCD92C7EF965CE0C7CC4B433B496`。
+* zip 20,021,659 字节，SHA-256 `73B1C43B7E03C42FB3C83B69D07CD5B857343D2B4A9B642DC1B27D069855B4F0`；956 个条目，根目录 `EyeBreak-v3.5/`，不含运行期 JSON/日志。
+* 从 zip 解压目录启动 `EyeBreak.exe` 成功并生成 `config.json`；验证后已停止进程并清理临时目录。
+* 未重复执行安装/卸载端到端验证；安装机制与 `V3.4` 相同，仅版本号变化。
 
 ## 本次变更：V3.4 发布（2026-10-21）
 
