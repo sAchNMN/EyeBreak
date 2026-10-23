@@ -14,7 +14,7 @@
 
 EyeBreak 是面向 Windows 中文用户的护眼休息提醒工具，使用 Python、Tkinter 和 `pystray` 开发。
 
-核心能力：按设定间隔弹出护眼提醒、可拖动且贴边自动隐藏的悬浮倒计时、系统托盘控制、暂停/恢复/立即休息、今日免打扰、本地统计、开机自启、用户离开检测、全屏运行时延后提醒、PyInstaller 打包成 Windows 可执行文件。
+核心能力：按设定间隔弹出护眼提醒、可拖动且贴边自动隐藏的悬浮倒计时（展开/收起带滑出过渡动画，大小、装饰条颜色/宽度和动画可配置）、系统托盘控制、暂停/恢复/立即休息、今日免打扰、本地统计、开机自启、用户离开检测、全屏运行时延后提醒、PyInstaller 打包成 Windows 可执行文件。
 
 ## 当前版本与发布
 
@@ -59,9 +59,10 @@ python -m PyInstaller build.spec
 * 构建产物是 onedir：`dist/EyeBreak/EyeBreak.exe` 加同级的 `_internal/`。不能只复制 EXE。
 * 安装包构建需要 Inno Setup 6.3+（`winget install --id JRSoftware.InnoSetup -e`），只影响出安装包的机器，不是运行时依赖。产物在 `dist/installer/EyeBreak-Setup-<version>.exe`；`-SkipAppBuild` 可复用已有 `dist/EyeBreak/`。
 * 安装包按用户安装到 `%LOCALAPPDATA%\Programs\EyeBreak`，不弹 UAC；原因和安装包行为见 `README.md` “生成安装包”。
-* 最近一次有效全量回归：`.\.venv\Scripts\python.exe -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\final-pytest` → **268 passed in 2.90s**（2026-10-21，安装包改动后）。
+* 最近一次有效全量回归：`.\.venv\Scripts\python.exe -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\precommit-full` → **302 passed in 2.31s**（2026-10-23，保存后保持设置窗口打开改动后）。
 * 本机 `.venv` 未装 pytest，本次通过 `PYTHONPATH` 指向 `.dsh-tmp/test_site` 提供 pytest；常规开发环境装好 pytest 后直接运行上面的命令即可。
-* 已知环境问题：DSH 沙箱下 pytest 用 0700 权限创建 `tmp_path`/basetemp，当前用户随后无法读取，session finish 会抛 `PermissionError: [WinError 5]`。这是沙箱限制；本次已提权重跑验证。
+* 已知环境问题：DSH 沙箱下 pytest 用 0700 权限创建 `tmp_path`/basetemp，当前用户随后无法读取，session finish 会抛 `PermissionError: [WinError 5]`。这是沙箱限制；本次已在 `danger-full-access` 下重跑验证。
+* 本机托盘排错（2026-10-23）：DSH 工作区把 `.venv\Scripts\python.exe` 标成 Low 完整性，进程因此以 Low IL 启动，`Shell_NotifyIconW(NIM_ADD)` 返回 `(0, 5)`（拒绝访问）。执行 `icacls .venv\Scripts\python.exe /setintegritylevel Medium` 后，进程完整性变为 `0x2000`，`NIM_ADD` 返回 `(1, 0)`，pystray 的 `...SystemTrayIcon` 窗口正常创建。当前已从项目根目录运行 `main.py`（进程 9348/27820），托盘图标应位于任务栏 `^` 溢出区。此 ACL 修复只在本机 `.venv`，不进入 Git。
 
 ## 依赖决策
 
@@ -75,6 +76,87 @@ python -m PyInstaller build.spec
 
 * `README.md` 的验收清单是手动 GUI 验收的依据。真实 Windows 下的 DPI、多显示器、任务栏配置仍需人工确认。
 * 自动化测试通过不等于手动验收通过；没有用户明确说“验收没有问题”，不提交推送。
+
+## 本次变更：悬浮窗外观设置（2026-10-23）
+
+变更文件：
+
+* `app/config.py`：`AppConfig` 新增 `floating_window_scale`（80–160，默认 100）、`floating_tab_width`（6–40，默认 16）、`floating_tab_color`（`#RRGGBB`，默认 `#14b8a6`）、`floating_animation_enabled`（默认 `True`）；读写、解析和校验同步支持这四项。
+* `app/floating_countdown.py`：`window_width_for_edge()` / `window_height_for_edge()` 支持缩放和装饰条宽度；新增 `tab_thickness_for_edge()`；实例按设置计算窗口尺寸、标签字体和间距；新增 `apply_appearance()`，保存设置后原地更新尺寸、颜色、字体和位置，不重建窗口；动画开关关闭时 `show()` / `hide()` 直接定位。
+* `app/settings_window.py`：设置窗口增加“悬浮窗外观”区域，包含大小、装饰条宽度、颜色选择和“启用展开/收起过渡动画”开关；窗口高度从 500 调到 680；保存时解析并应用新字段；点击“保存”后不再自动关闭设置窗口，用户可继续调整或手动关闭。
+* `app/ui/bridge.py`：创建悬浮窗时传入外观配置；保存设置后调用 `apply_appearance()`。
+* `tests/test_config.py`、`tests/test_floating_countdown.py`、`tests/test_bridge.py`、`tests/test_settings_window.py`：新增外观配置、解析校验、尺寸计算、动画开关、原地应用、桥接调用和“保存后不关闭”测试。
+* `README.md`：当前状态、JSON 配置说明和设置窗口验收清单补充外观设置。
+
+当前行为：
+
+* 悬浮窗大小按 80%–160% 缩放，内容尺寸、状态文字、倒计时数字和间距一起缩放；装饰条宽度按像素设置，不随缩放变化。
+* 左右贴边装饰条宽度直接等于设置值；上下贴边按原 16:10 比例换算，默认仍为 10 像素高。
+* 设置保存后立即应用到已存在的悬浮窗：隐藏状态保持贴边只露新宽度的装饰条，未贴边时保持当前位置并限制在屏幕内，展开状态保持贴边位置。
+* 点击“保存”后设置窗口保持打开，方便连续调整；关闭窗口使用“取消”、标题栏关闭按钮或系统关闭操作。
+* 装饰条颜色同时用于窗口底色和装饰条；颜色只接受 `#RRGGBB`。
+* 关闭动画后展开/收起立即切换；重新开启后恢复 180 ms 滑动。动画进行中保存设置会取消动画并直接定位到当前状态对应的位置。
+
+依赖决策：
+
+* 无新增、移除或升级依赖；颜色选择使用 Tkinter 自带的 `tkinter.colorchooser`。
+
+安装/运行/测试影响：
+
+* 安装、运行和构建命令不变；`config.json` 新增四个可选字段，旧配置缺少字段时使用默认值，保存后写入新字段。
+
+测试命令与结果：
+
+* `.\.venv\Scripts\python.exe -m pytest -q tests\test_settings_window.py -p no:cacheprovider --basetemp=.tmp\save-keep-open --tb=short` → **3 passed in 0.10s**。
+* `.\.venv\Scripts\python.exe -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\save-keep-open-full --tb=short` → **302 passed in 2.36s**。
+* `.\.venv\Scripts\python.exe -m compileall -q app main.py tests` → 通过。
+* `git diff --check` → 通过。
+* 真实 Tk 冒烟：150% + 24px 装饰条时窗口 216×108、字体 27；切换为 80% + 10px 后窗口 112×58、字体 14；隐藏位置分别正确落在 `(1683, 100)` 和 `(1697, 100)`；装饰条颜色即时变为 `#00aaff`。
+* 设置窗口冒烟：窗口 430×680，内容请求高度 663；填写 125%、22px、`#3366ff`、关闭动画后保存，解析结果正确；再次验证保存 20 分钟后窗口仍然存在且处于显示状态，手动关闭后才销毁。
+
+已知失败与限制：
+
+* 未做真实鼠标操作的人工 GUI 验收；需要确认 80% 缩放下文字观感、颜色选择器交互和 680px 设置窗口在目标屏幕上的显示。
+* 装饰条宽度设置是像素值，不随窗口缩放；上下贴边按比例换算，不是独立设置项。
+* 尺寸/字体缩放使用整数取整，极端比例下可能与原始布局有 1–2 像素差异。
+
+## 本次变更：悬浮窗展开/收起过渡动画（2026-10-23）
+
+变更文件：
+
+* `app/floating_countdown.py`：新增 `ease_out_cubic()` 与 `interpolate_position()`；`show()` 和 `hide()` 都用 `root.after` 以 15 ms 帧、180 ms 总时长在隐藏/可见位置之间缓出滑动；动画从窗口实际位置起算，因此展开/收起进行中反向触发时能平滑反转；拖动开始、关闭悬浮窗时取消未完成的动画。
+* `tests/test_floating_countdown.py`：新增 12 个测试，覆盖缓出插值、展开/收起首帧与末帧、动画期间重复调用、反向动画、已展开/未贴边不播放动画、拖动/关闭时取消动画；同步调整原有相关断言。
+* `README.md`：当前状态和“悬浮倒计时”验收清单补充展开、收起动画说明，并更新回归结果。
+* `HANDOFF.md`：更新回归结果和本次变更说明。
+
+当前行为：
+
+* 鼠标移到贴边窄条后，悬浮窗从隐藏位置滑出到可见位置，约 180 ms，先快后慢；展开依赖的位置计算、立即刷新和隐藏逻辑保持不变。
+* 鼠标离开后，悬浮窗从当前位置滑回窄条，同样约 180 ms；隐藏时仍立即停止界面数字刷新。
+* 已在展开状态、未贴边、拖动开始或关闭悬浮窗时不播放动画；动画中重复触发同方向操作不会重启动画，反向触发（展开中收起、收起中展开）会从窗口当前实际位置平滑改向。
+* 收起动画只在贴边时执行；未贴边的悬浮窗仍保持完整显示。
+
+依赖决策：
+
+* 无新增、移除或升级依赖；动画完全使用 Tkinter 的 `after` 调度。
+
+安装/运行/测试影响：
+
+* 安装、运行和构建命令不变；无新增配置项或数据字段。
+
+测试命令与结果：
+
+* `.\.venv\Scripts\python.exe -m pytest -q tests\test_floating_countdown.py -p no:cacheprovider --basetemp=.tmp\hide-animation-pytest --tb=short` → **36 passed in 0.50s**。
+* `.\.venv\Scripts\python.exe -m pytest -q tests -p no:cacheprovider --basetemp=.tmp\hide-animation-full --tb=short` → **280 passed in 2.30s**（关闭 DSH 文件沙箱后运行；沙箱下 pytest 的 `tmp_path`/basetemp 会出现已知的 `PermissionError: [WinError 5]`）。
+* `.\.venv\Scripts\python.exe -m compileall -q app main.py tests` → 通过。
+* `git diff --check` → 通过。
+* 真实 Tk 冒烟（展开）：隐藏位置 `(1691, 100)`，`show()` 后以 20 ms 采样得到 `1662 → 1637 → 1601 → 1579 → 1572 → 1565 → 1563`，最终停在可见位置 `(1563, 100)`，`_is_hidden=False`。
+* 真实 Tk 冒烟（收起）：可见位置 `(1563, 100)`，`hide()` 后采样得到 `1592 → 1637 → 1666 → 1682 → 1689 → 1691`，最终停在隐藏位置 `(1691, 100)`，`_is_hidden=True`，动画任务结束。
+
+已知失败与限制：
+
+* 未做真实鼠标悬停的人工 GUI 验收；需要用户确认展开/收起的速度、方向和反向切换是否符合预期。
+* 动画帧依赖 Tk 事件循环，系统高负载时可能丢帧；未使用 Windows 原生动画 API，以保持实现跨平台且无新依赖。
 
 ## 已知限制与后续工作
 

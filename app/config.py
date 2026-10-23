@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -10,6 +11,11 @@ from app.persistence import atomic_write_json, read_json_object
 
 
 CONFIG_PATH = runtime_file_path("config.json")
+HEX_COLOR_PATTERN = re.compile(r"#[0-9a-fA-F]{6}")
+FLOATING_SCALE_MIN = 80
+FLOATING_SCALE_MAX = 160
+FLOATING_TAB_WIDTH_MIN = 6
+FLOATING_TAB_WIDTH_MAX = 40
 
 
 @dataclass(frozen=True)
@@ -19,6 +25,10 @@ class AppConfig:
     pause_minutes: float = 60
     idle_threshold_minutes: float = 5
     fullscreen_detection_enabled: bool = True
+    floating_window_scale: int = 100
+    floating_tab_width: int = 16
+    floating_tab_color: str = "#14b8a6"
+    floating_animation_enabled: bool = True
 
 
 DEFAULT_CONFIG = AppConfig()
@@ -61,6 +71,22 @@ def load_config(path: Path = CONFIG_PATH) -> AppConfig:
             raw_config.get("fullscreen_detection_enabled"),
             DEFAULT_CONFIG.fullscreen_detection_enabled,
         ),
+        floating_window_scale=_integer_number(
+            raw_config.get("floating_window_scale"),
+            DEFAULT_CONFIG.floating_window_scale,
+        ),
+        floating_tab_width=_integer_number(
+            raw_config.get("floating_tab_width"),
+            DEFAULT_CONFIG.floating_tab_width,
+        ),
+        floating_tab_color=_color_value(
+            raw_config.get("floating_tab_color"),
+            DEFAULT_CONFIG.floating_tab_color,
+        ),
+        floating_animation_enabled=_bool_value(
+            raw_config.get("floating_animation_enabled"),
+            DEFAULT_CONFIG.floating_animation_enabled,
+        ),
     )
     try:
         return validate_config(config)
@@ -76,6 +102,10 @@ def save_config(config: AppConfig, path: Path = CONFIG_PATH) -> None:
         "pause_minutes": config.pause_minutes,
         "idle_threshold_minutes": config.idle_threshold_minutes,
         "fullscreen_detection_enabled": config.fullscreen_detection_enabled,
+        "floating_window_scale": config.floating_window_scale,
+        "floating_tab_width": config.floating_tab_width,
+        "floating_tab_color": config.floating_tab_color,
+        "floating_animation_enabled": config.floating_animation_enabled,
     }
     atomic_write_json(path, payload, backup=True)
 
@@ -86,6 +116,10 @@ def parse_config_values(
     pause_minutes: str,
     idle_threshold_minutes: str,
     fullscreen_detection_enabled: bool = True,
+    floating_window_scale: str = str(DEFAULT_CONFIG.floating_window_scale),
+    floating_tab_width: str = str(DEFAULT_CONFIG.floating_tab_width),
+    floating_tab_color: str = DEFAULT_CONFIG.floating_tab_color,
+    floating_animation_enabled: bool = DEFAULT_CONFIG.floating_animation_enabled,
 ) -> AppConfig:
     """Parse user-entered settings text into a validated configuration."""
     config = AppConfig(
@@ -109,6 +143,16 @@ def parse_config_values(
             minimum_inclusive=True,
         ),
         fullscreen_detection_enabled=fullscreen_detection_enabled,
+        floating_window_scale=_parse_int(
+            floating_window_scale,
+            "悬浮窗大小必须是 80 到 160 之间的整数",
+        ),
+        floating_tab_width=_parse_int(
+            floating_tab_width,
+            "装饰条宽度必须是 6 到 40 之间的整数",
+        ),
+        floating_tab_color=floating_tab_color.strip(),
+        floating_animation_enabled=floating_animation_enabled,
     )
     return validate_config(config)
 
@@ -170,7 +214,41 @@ def validate_config(config: AppConfig) -> AppConfig:
     )
     if not isinstance(config.fullscreen_detection_enabled, bool):
         raise ConfigValidationError("全屏检测开关必须是布尔值")
+    _validate_integer_range(
+        config.floating_window_scale,
+        "悬浮窗大小必须是 80 到 160 之间的整数",
+        minimum=FLOATING_SCALE_MIN,
+        maximum=FLOATING_SCALE_MAX,
+    )
+    _validate_integer_range(
+        config.floating_tab_width,
+        "装饰条宽度必须是 6 到 40 之间的整数",
+        minimum=FLOATING_TAB_WIDTH_MIN,
+        maximum=FLOATING_TAB_WIDTH_MAX,
+    )
+    if (
+        not isinstance(config.floating_tab_color, str)
+        or not HEX_COLOR_PATTERN.fullmatch(config.floating_tab_color)
+    ):
+        raise ConfigValidationError("装饰条颜色必须是 #RRGGBB 格式")
+    if not isinstance(config.floating_animation_enabled, bool):
+        raise ConfigValidationError("展开/收起动画开关必须是布尔值")
     return config
+
+
+def _validate_integer_range(
+    value: Any,
+    message: str,
+    *,
+    minimum: int,
+    maximum: int,
+) -> None:
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, int)
+        or not minimum <= value <= maximum
+    ):
+        raise ConfigValidationError(message)
 
 
 def _validate_number(
@@ -237,4 +315,12 @@ def _non_negative_number(value: Any, fallback: float) -> float:
 def _bool_value(value: Any, fallback: bool) -> bool:
     if isinstance(value, bool):
         return value
+    return fallback
+
+
+def _color_value(value: Any, fallback: str) -> str:
+    if isinstance(value, str):
+        stripped = value.strip()
+        if HEX_COLOR_PATTERN.fullmatch(stripped):
+            return stripped
     return fallback

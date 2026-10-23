@@ -120,6 +120,60 @@ def test_save_config_writes_fullscreen_detection_flag(tmp_path: Path) -> None:
     assert config.fullscreen_detection_enabled is False
 
 
+def test_load_config_reads_floating_appearance(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.json"
+    config_path.write_text(
+        """
+        {
+          "floating_window_scale": 120,
+          "floating_tab_width": 24,
+          "floating_tab_color": "#ff8800",
+          "floating_animation_enabled": false
+        }
+        """,
+        encoding="utf-8",
+    )
+
+    config = load_config(config_path)
+
+    assert config.floating_window_scale == 120
+    assert config.floating_tab_width == 24
+    assert config.floating_tab_color == "#ff8800"
+    assert config.floating_animation_enabled is False
+
+
+def test_load_config_defaults_floating_appearance_when_missing(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.json"
+    config_path.write_text('{"reminder_interval_minutes": 10}', encoding="utf-8")
+
+    config = load_config(config_path)
+
+    assert config.floating_window_scale == 100
+    assert config.floating_tab_width == 16
+    assert config.floating_tab_color == "#14b8a6"
+    assert config.floating_animation_enabled is True
+
+
+def test_save_config_writes_floating_appearance(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.json"
+
+    save_config(
+        AppConfig(
+            floating_window_scale=130,
+            floating_tab_width=28,
+            floating_tab_color="#123abc",
+            floating_animation_enabled=False,
+        ),
+        config_path,
+    )
+
+    config = load_config(config_path)
+    assert config.floating_window_scale == 130
+    assert config.floating_tab_width == 28
+    assert config.floating_tab_color == "#123abc"
+    assert config.floating_animation_enabled is False
+
+
 @pytest.mark.parametrize(
     "field,value",
     [
@@ -185,6 +239,67 @@ def test_parse_config_values_allows_decimal_minutes() -> None:
     assert config.pause_minutes == 1.5
     assert config.idle_threshold_minutes == 2.5
     assert config.fullscreen_detection_enabled is True
+
+
+def test_parse_config_values_parses_floating_appearance() -> None:
+    config = parse_config_values(
+        "15",
+        "20",
+        "30",
+        "5",
+        True,
+        floating_window_scale="140",
+        floating_tab_width="22",
+        floating_tab_color=" #00AAFF ",
+        floating_animation_enabled=False,
+    )
+
+    assert config.floating_window_scale == 140
+    assert config.floating_tab_width == 22
+    assert config.floating_tab_color == "#00AAFF"
+    assert config.floating_animation_enabled is False
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("floating_window_scale", 79),
+        ("floating_window_scale", 161),
+        ("floating_tab_width", 5),
+        ("floating_tab_width", 41),
+        ("floating_tab_color", "teal"),
+        ("floating_tab_color", "#12345"),
+        ("floating_tab_color", "#GGGGGG"),
+    ],
+)
+def test_validate_config_rejects_invalid_floating_appearance(field: str, value) -> None:
+    config = AppConfig(**{field: value})
+
+    with pytest.raises(ConfigValidationError):
+        validate_config(config)
+
+
+def test_validate_config_rejects_non_boolean_floating_animation() -> None:
+    config = AppConfig(floating_animation_enabled="yes")  # type: ignore[arg-type]
+
+    with pytest.raises(ConfigValidationError):
+        validate_config(config)
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    [
+        ({"floating_window_scale": "70"}, "悬浮窗大小必须是 80 到 160 之间的整数"),
+        ({"floating_tab_width": "50"}, "装饰条宽度必须是 6 到 40 之间的整数"),
+        ({"floating_tab_color": "red"}, "装饰条颜色必须是 #RRGGBB 格式"),
+    ],
+)
+def test_parse_config_values_rejects_invalid_floating_appearance(
+    kwargs: dict[str, str],
+    message: str,
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        parse_config_values("15", "20", "30", "5", True, **kwargs)
 
 
 @pytest.mark.parametrize(

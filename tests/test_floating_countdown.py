@@ -1,9 +1,12 @@
 import tkinter as tk
 
 from app.floating_countdown import (
+    DEFAULT_TAB_COLOR,
     HORIZONTAL_WINDOW_WIDTH,
+    SLIDE_ANIMATION_FRAME_MS,
     VISIBLE_TAB_HEIGHT,
     VISIBLE_TAB_WIDTH,
+    VERTICAL_WINDOW_HEIGHT,
     VERTICAL_WINDOW_WIDTH,
     WINDOW_HEIGHT,
     WINDOW_WIDTH,
@@ -11,9 +14,12 @@ from app.floating_countdown import (
     edge_y_position,
     hidden_position_for_edge,
     hidden_x_position,
+    interpolate_position,
     nearest_docked_edge,
+    tab_thickness_for_edge,
     visible_position_for_edge,
     visible_x_position,
+    window_height_for_edge,
     window_width_for_edge,
 )
 
@@ -43,6 +49,35 @@ def test_window_width_follows_docked_edge() -> None:
 
 def test_top_and_bottom_tabs_are_thinner_than_side_tabs() -> None:
     assert VISIBLE_TAB_HEIGHT == 10
+    assert tab_thickness_for_edge("top") == VISIBLE_TAB_HEIGHT
+
+
+def test_window_scale_scales_content_without_scaling_the_configured_tab() -> None:
+    base_content_width = VERTICAL_WINDOW_WIDTH - VISIBLE_TAB_WIDTH
+    base_top_content_height = WINDOW_HEIGHT - VISIBLE_TAB_HEIGHT
+
+    assert window_width_for_edge(
+        "right", scale=1.5, tab_width=20
+    ) == round(base_content_width * 1.5) + 20
+    assert window_height_for_edge("right", scale=1.5, tab_width=20) == round(
+        VERTICAL_WINDOW_HEIGHT * 1.5
+    )
+    assert window_height_for_edge("top", scale=1.5, tab_width=20) == (
+        round(base_top_content_height * 1.5)
+        + tab_thickness_for_edge("top", 20)
+    )
+
+
+def test_tab_width_changes_exposed_strip_without_shrinking_content() -> None:
+    narrow_width = window_width_for_edge("right", tab_width=10)
+    wide_width = window_width_for_edge("right", tab_width=30)
+    assert wide_width - narrow_width == 20
+
+    for tab_width in (6, 16, 40):
+        thickness = tab_thickness_for_edge("top", tab_width)
+        assert window_height_for_edge("top", tab_width=tab_width) - thickness == (
+            WINDOW_HEIGHT - VISIBLE_TAB_HEIGHT
+        )
 
 
 def test_edge_y_position_uses_stable_upper_screen_offset() -> None:
@@ -313,8 +348,16 @@ def test_show_cancels_pending_hide() -> None:
     window._edge = "right"
     window._is_enabled = True
     window._is_hidden = True
+    window._is_dragging = False
     window._hide_job = "hide-job"
+    window._slide_animation_job = None
     window._on_show = None
+    window._visible_x = 1600
+    window._visible_y = 100
+    window.root.winfo_screenwidth.return_value = 1920
+    window.root.winfo_screenheight.return_value = 1080
+    window.root.winfo_rootx.return_value = 1600
+    window.root.winfo_rooty.return_value = 100
     window._place_tab_for_edge = MagicMock()
     window._visible_position = MagicMock(return_value=(1, 2))
     window._move_to_position = MagicMock()
@@ -338,14 +381,22 @@ def test_enabling_docked_window_schedules_initial_hide_check() -> None:
     window._is_hidden = True
     window._is_dragging = False
     window._hide_job = None
+    window._slide_animation_job = None
     window._on_show = None
+    window._visible_x = 1600
+    window._visible_y = 100
+    window.root.winfo_screenwidth.return_value = 1920
+    window.root.winfo_screenheight.return_value = 1080
+    window.root.winfo_rootx.return_value = 1600
+    window.root.winfo_rooty.return_value = 100
     window._place_tab_for_edge = MagicMock()
     window._visible_position = MagicMock(return_value=(1, 2))
     window._move_to_position = MagicMock()
 
     window.set_enabled(True)
 
-    window.root.after.assert_called_once_with(200, window._hide_if_pointer_outside)
+    window.root.after.assert_called_with(200, window._hide_if_pointer_outside)
+    assert window.root.after.call_count == 2
 
 
 def test_schedule_hide_does_nothing_while_dragging() -> None:
@@ -375,6 +426,7 @@ def test_disabling_window_resets_drag_state() -> None:
     window._is_enabled = True
     window._is_dragging = True
     window._hide_job = "hide-job"
+    window._slide_animation_job = None
 
     window.set_enabled(False)
 
@@ -402,6 +454,281 @@ def test_bottom_layout_gives_countdown_text_enough_height() -> None:
         assert countdown_bottom <= content_bottom
     finally:
         root.destroy()
+
+
+def test_interpolate_position_starts_and_ends_exactly() -> None:
+    assert interpolate_position((10, 20), (110, 80), 0.0) == (10, 20)
+    assert interpolate_position((10, 20), (110, 80), 1.0) == (110, 80)
+
+
+def test_interpolate_position_eases_out_toward_the_target() -> None:
+    halfway_x, _ = interpolate_position((0, 0), (100, 0), 0.5)
+
+    assert halfway_x == 88
+
+
+def _make_docked_window(edge: str = "right"):
+    from unittest.mock import MagicMock
+
+    from app.floating_countdown import FloatingCountdownWindow
+
+    window = FloatingCountdownWindow.__new__(FloatingCountdownWindow)
+    window.root = MagicMock()
+    window.root.winfo_screenwidth.return_value = 1920
+    window.root.winfo_screenheight.return_value = 1080
+    window.root.after.return_value = "animation-job"
+    window._edge = edge
+    window._visible_x = 1920 - VERTICAL_WINDOW_WIDTH
+    window._visible_y = 200
+    window._window_width = VERTICAL_WINDOW_WIDTH
+    window._window_height = 72
+    window._is_enabled = True
+    window._is_hidden = True
+    window._is_dragging = False
+    window._hide_job = None
+    window._slide_animation_job = None
+    window._scale_percent = 100
+    window._tab_width = VISIBLE_TAB_WIDTH
+    window._tab_color = DEFAULT_TAB_COLOR
+    window._animation_enabled = True
+    window._on_show = None
+    window.root.winfo_rootx.return_value = 1920 - VISIBLE_TAB_WIDTH
+    window.root.winfo_rooty.return_value = 200
+    window._place_tab_for_edge = MagicMock()
+    window._move_to_position = MagicMock()
+    return window
+
+
+def test_show_slides_a_docked_window_out_from_its_hidden_tab() -> None:
+    window = _make_docked_window()
+    hidden = hidden_position_for_edge(
+        "right",
+        window._visible_x,
+        window._visible_y,
+        1920,
+        1080,
+        window_width=VERTICAL_WINDOW_WIDTH,
+        window_height=72,
+    )
+
+    window.show()
+
+    window._move_to_position.assert_called_once_with(*hidden)
+    assert window._is_hidden is False
+    delay, callback = window.root.after.call_args.args
+    assert delay == SLIDE_ANIMATION_FRAME_MS
+    assert callback == window._advance_slide_animation
+
+    for _ in range(100):
+        if window._slide_animation_job is None:
+            break
+        window._advance_slide_animation()
+
+    assert window._slide_animation_job is None
+    window._move_to_position.assert_called_with(
+        1920 - VERTICAL_WINDOW_WIDTH,
+        200,
+    )
+
+
+def test_show_does_not_restart_animation_while_it_is_running() -> None:
+    window = _make_docked_window()
+    window.show()
+    window.root.after.reset_mock()
+
+    window.show()
+
+    window.root.after.assert_not_called()
+
+
+def test_show_while_already_visible_does_not_animate() -> None:
+    window = _make_docked_window()
+    window._is_hidden = False
+
+    window.show()
+
+    assert window._slide_animation_job is None
+    window._move_to_position.assert_called_once_with(
+        1920 - VERTICAL_WINDOW_WIDTH,
+        200,
+    )
+
+
+def test_show_of_an_undocked_window_does_not_animate() -> None:
+    window = _make_docked_window()
+    window._edge = None
+    window._is_hidden = False
+
+    window.show()
+
+    assert window._slide_animation_job is None
+    window._move_to_position.assert_not_called()
+
+
+def test_show_jumps_without_animation_when_transition_is_disabled() -> None:
+    window = _make_docked_window()
+    window._animation_enabled = False
+
+    window.show()
+
+    assert window._slide_animation_job is None
+    window._move_to_position.assert_called_once_with(
+        1920 - VERTICAL_WINDOW_WIDTH,
+        200,
+    )
+
+
+def test_hide_jumps_without_animation_when_transition_is_disabled() -> None:
+    window = _make_docked_window()
+    window._is_hidden = False
+    window._animation_enabled = False
+    window.root.winfo_rootx.return_value = 1920 - VERTICAL_WINDOW_WIDTH
+    hidden = hidden_position_for_edge(
+        "right",
+        window._visible_x,
+        window._visible_y,
+        1920,
+        1080,
+        window_width=VERTICAL_WINDOW_WIDTH,
+        window_height=72,
+    )
+
+    window.hide()
+
+    assert window._slide_animation_job is None
+    assert window._is_hidden is True
+    window._move_to_position.assert_called_once_with(*hidden)
+
+
+def test_apply_appearance_updates_size_color_and_animation_flag() -> None:
+    from unittest.mock import MagicMock
+
+    window = _make_docked_window()
+    window._shell = MagicMock()
+    window._tab = MagicMock()
+    window.status_label = MagicMock()
+    window.label = MagicMock()
+
+    window.apply_appearance(
+        window_scale=150,
+        tab_width=30,
+        tab_color="#ff8800",
+        animation_enabled=False,
+    )
+
+    expected_width = window_width_for_edge("right", scale=1.5, tab_width=30)
+    expected_height = window_height_for_edge("right", scale=1.5, tab_width=30)
+    assert window._window_width == expected_width
+    assert window._window_height == expected_height
+    assert window._animation_enabled is False
+    window.root.configure.assert_called_with(bg="#ff8800")
+    window._tab.configure.assert_called_with(bg="#ff8800")
+    window._shell.configure.assert_called_with(
+        width=expected_width,
+        height=expected_height,
+    )
+    window._place_tab_for_edge.assert_called_once()
+    window._move_to_position.assert_called_with(1920 - 30, 200)
+
+
+def test_start_drag_cancels_the_slide_animation_and_snaps_panel_visible() -> None:
+    from types import SimpleNamespace
+
+    window = _make_docked_window()
+    visible_x = 1920 - VERTICAL_WINDOW_WIDTH
+    window.show()
+    window.root.winfo_rootx.return_value = visible_x
+
+    window._start_drag(SimpleNamespace(x_root=visible_x + 10, y_root=220))
+
+    window.root.after_cancel.assert_called_with("animation-job")
+    assert window._slide_animation_job is None
+    assert window._drag_offset_x == 10
+    assert window._drag_offset_y == 20
+    window._move_to_position.assert_called_with(visible_x, 200)
+
+
+def test_hide_slides_the_docked_window_back_to_its_tab() -> None:
+    window = _make_docked_window()
+    window._is_hidden = False
+    hidden = hidden_position_for_edge(
+        "right",
+        window._visible_x,
+        window._visible_y,
+        1920,
+        1080,
+        window_width=VERTICAL_WINDOW_WIDTH,
+        window_height=72,
+    )
+    window.root.winfo_rootx.return_value = 1920 - VERTICAL_WINDOW_WIDTH
+
+    window.hide()
+
+    assert window._is_hidden is True
+    window._move_to_position.assert_called_once_with(
+        1920 - VERTICAL_WINDOW_WIDTH,
+        200,
+    )
+    delay, callback = window.root.after.call_args.args
+    assert delay == SLIDE_ANIMATION_FRAME_MS
+    assert callback == window._advance_slide_animation
+
+    for _ in range(100):
+        if window._slide_animation_job is None:
+            break
+        window._advance_slide_animation()
+
+    assert window._slide_animation_job is None
+    window._move_to_position.assert_called_with(*hidden)
+
+
+def test_hide_does_not_restart_while_the_panel_is_already_sliding_away() -> None:
+    window = _make_docked_window()
+    window._is_hidden = False
+    window.root.winfo_rootx.return_value = 1920 - VERTICAL_WINDOW_WIDTH
+    window.hide()
+    window.root.after.reset_mock()
+
+    window.hide()
+
+    window.root.after.assert_not_called()
+
+
+def test_show_reverses_an_in_progress_hide_from_the_current_position() -> None:
+    window = _make_docked_window()
+    window._is_hidden = False
+    window.root.winfo_rootx.return_value = 1920 - VERTICAL_WINDOW_WIDTH
+    window.hide()
+    window.root.winfo_rootx.return_value = 1800
+
+    window.show()
+
+    window.root.after_cancel.assert_called_with("animation-job")
+    window._move_to_position.assert_called_with(1800, 200)
+    assert window._is_hidden is False
+
+
+def test_hide_reverses_an_in_progress_show_from_the_current_position() -> None:
+    window = _make_docked_window()
+    window.show()
+    window.root.winfo_rootx.return_value = 1800
+
+    window.hide()
+
+    window.root.after_cancel.assert_called_with("animation-job")
+    window._move_to_position.assert_called_with(1800, 200)
+    assert window._is_hidden is True
+
+
+def test_disabling_window_cancels_the_slide_animation() -> None:
+    window = _make_docked_window()
+    window.show()
+
+    window.set_enabled(False)
+
+    window.root.after_cancel.assert_called_with("animation-job")
+    assert window._slide_animation_job is None
+    window.root.withdraw.assert_called_once()
 
 
 def test_real_tk_window_uses_directional_widths() -> None:

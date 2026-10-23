@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import tkinter as tk
 from collections.abc import Callable
-from tkinter import messagebox
+from tkinter import colorchooser, messagebox
 
 from app.config import AppConfig, parse_config_values
 from app.icons import apply_window_icon
@@ -31,6 +31,11 @@ class SettingsWindow:
         self.fullscreen_detection_enabled = tk.BooleanVar(
             value=config.fullscreen_detection_enabled
         )
+        self.floating_animation_enabled = tk.BooleanVar(
+            value=config.floating_animation_enabled
+        )
+        self.floating_tab_color = tk.StringVar(value=config.floating_tab_color)
+        self._color_preview: tk.Label | None = None
         self._build_window()
 
     def show(self) -> None:
@@ -45,7 +50,7 @@ class SettingsWindow:
     def _build_window(self) -> None:
         self.root.title("EyeBreak 设置")
         apply_window_icon(self.root)
-        self.root.geometry("430x500")
+        self.root.geometry("430x680")
         self.root.resizable(False, False)
         self.root.configure(bg="#f5f7fb")
         self.root.protocol("WM_DELETE_WINDOW", self._close)
@@ -91,10 +96,11 @@ class SettingsWindow:
             font=("Microsoft YaHei UI", 10),
         ).grid(row=4, column=0, columnspan=2, sticky="w", pady=(10, 2))
 
-        self._build_stats(container)
+        self._build_floating_appearance(container, 5)
+        self._build_stats(container, 6)
 
         button_frame = tk.Frame(container, bg="#f5f7fb")
-        button_frame.grid(row=6, column=0, columnspan=2, sticky="e", pady=(18, 0))
+        button_frame.grid(row=7, column=0, columnspan=2, sticky="e", pady=(18, 0))
         tk.Button(button_frame, text="取消", width=9, command=self._close).pack(
             side=tk.LEFT,
             padx=(0, 8),
@@ -103,7 +109,93 @@ class SettingsWindow:
             side=tk.LEFT,
         )
 
-    def _build_stats(self, parent: tk.Frame) -> None:
+    def _build_floating_appearance(self, parent: tk.Frame, row: int) -> None:
+        frame = tk.LabelFrame(
+            parent,
+            text="悬浮窗外观",
+            bg="#f5f7fb",
+            fg="#1f2937",
+            font=("Microsoft YaHei UI", 10),
+            padx=10,
+            pady=6,
+        )
+        frame.grid(row=row, column=0, columnspan=2, sticky="ew", pady=(12, 0))
+
+        self._add_number_row(
+            frame,
+            "悬浮窗大小（80–160%）",
+            "floating_window_scale",
+            self.config.floating_window_scale,
+            0,
+        )
+        self._add_number_row(
+            frame,
+            "装饰条宽度（6–40 像素）",
+            "floating_tab_width",
+            self.config.floating_tab_width,
+            1,
+        )
+
+        tk.Label(
+            frame,
+            text="装饰条颜色",
+            font=("Microsoft YaHei UI", 10),
+            bg="#f5f7fb",
+            fg="#1f2937",
+        ).grid(row=2, column=0, sticky="w", pady=7)
+
+        color_row = tk.Frame(frame, bg="#f5f7fb")
+        color_row.grid(row=2, column=1, sticky="e", pady=7)
+        tk.Entry(
+            color_row,
+            width=9,
+            textvariable=self.floating_tab_color,
+            font=("Microsoft YaHei UI", 10),
+        ).pack(side=tk.LEFT)
+        self._color_preview = tk.Label(
+            color_row,
+            width=2,
+            bg=self.config.floating_tab_color,
+            relief=tk.SUNKEN,
+            bd=1,
+        )
+        self._color_preview.pack(side=tk.LEFT, padx=(6, 0))
+        tk.Button(
+            color_row,
+            text="选择…",
+            width=6,
+            command=self._pick_floating_tab_color,
+        ).pack(side=tk.LEFT, padx=(6, 0))
+
+        tk.Checkbutton(
+            frame,
+            text="启用展开/收起过渡动画",
+            variable=self.floating_animation_enabled,
+            bg="#f5f7fb",
+            fg="#1f2937",
+            activebackground="#f5f7fb",
+            font=("Microsoft YaHei UI", 10),
+        ).grid(row=3, column=0, columnspan=2, sticky="w", pady=(8, 2))
+
+    def _pick_floating_tab_color(self) -> None:
+        try:
+            _rgb, hex_color = colorchooser.askcolor(
+                color=self.floating_tab_color.get(),
+                parent=self.root,
+                title="选择装饰条颜色",
+            )
+        except tk.TclError:
+            _rgb, hex_color = colorchooser.askcolor(
+                parent=self.root,
+                title="选择装饰条颜色",
+            )
+        if not hex_color:
+            return
+        self.floating_tab_color.set(hex_color)
+        if self._color_preview:
+            self._color_preview.configure(bg=hex_color)
+
+    def _build_stats(self, parent: tk.Frame, grid_row: int) -> None:
         frame = tk.LabelFrame(
             parent,
             text="本地统计",
@@ -113,7 +205,7 @@ class SettingsWindow:
             padx=10,
             pady=6,
         )
-        frame.grid(row=5, column=0, columnspan=2, sticky="ew", pady=(12, 0))
+        frame.grid(row=grid_row, column=0, columnspan=2, sticky="ew", pady=(12, 0))
         for row, key in enumerate(
             ("reminder_count", "completed_count", "skip_count", "pause_count", "rate")
         ):
@@ -182,13 +274,17 @@ class SettingsWindow:
                 self.entries["pause_minutes"].get(),
                 self.entries["idle_threshold_minutes"].get(),
                 self.fullscreen_detection_enabled.get(),
+                floating_window_scale=self.entries["floating_window_scale"].get(),
+                floating_tab_width=self.entries["floating_tab_width"].get(),
+                floating_tab_color=self.floating_tab_color.get(),
+                floating_animation_enabled=self.floating_animation_enabled.get(),
             )
         except ValueError as exc:
             messagebox.showerror("设置无效", str(exc), parent=self.root)
             return
 
         self.on_save(config)
-        self._close()
+        self.config = config
 
     def _close(self) -> None:
         if self.root.winfo_exists():

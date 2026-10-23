@@ -46,6 +46,7 @@ class _StubFloating:
     def __init__(self) -> None:
         self.status_label = MagicMock()
         self.set_enabled = MagicMock()
+        self.apply_appearance = MagicMock()
         self.should_update_display = MagicMock(return_value=True)
         self.placement = MagicMock(return_value=("right", 100, 200))
 
@@ -233,6 +234,25 @@ def test_save_config_persists(mock_save, bridge, engine) -> None:
     assert engine.config.reminder_interval_minutes == 10
     # Disk persistence
     mock_save.assert_called_once_with(new_cfg)
+
+
+@patch("app.ui.bridge.save_config")
+def test_save_config_applies_floating_appearance(mock_save, bridge) -> None:
+    new_cfg = AppConfig(
+        floating_window_scale=120,
+        floating_tab_width=24,
+        floating_tab_color="#ff8800",
+        floating_animation_enabled=False,
+    )
+
+    bridge._save_settings(new_cfg)
+
+    bridge.floating.apply_appearance.assert_called_once_with(
+        window_scale=120,
+        tab_width=24,
+        tab_color="#ff8800",
+        animation_enabled=False,
+    )
 
 
 def test_clear_settings_window(bridge) -> None:

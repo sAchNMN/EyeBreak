@@ -94,11 +94,16 @@ class EyeBreakBridge:
         self._main_tick()  # start the 1-second tick loop
 
     def _build_floating(self) -> None:
+        config = self.engine.config
         self.floating = FloatingCountdownWindow(
             self.root,
             initial_edge=self._state.floating_countdown_edge,
             initial_x=self._state.floating_countdown_x,
             initial_y=self._state.floating_countdown_y,
+            window_scale=config.floating_window_scale,
+            tab_width=config.floating_tab_width,
+            tab_color=config.floating_tab_color,
+            animation_enabled=config.floating_animation_enabled,
         )
         self.floating_label = self.floating.build(
             on_close=lambda: self._ui_thread(self.engine.request_exit),
@@ -310,6 +315,13 @@ class EyeBreakBridge:
     def _save_settings(self, config: AppConfig) -> None:
         self.engine.save_config(config)
         save_config(config)  # persist to disk
+        if self.floating:
+            self.floating.apply_appearance(
+                window_scale=config.floating_window_scale,
+                tab_width=config.floating_tab_width,
+                tab_color=config.floating_tab_color,
+                animation_enabled=config.floating_animation_enabled,
+            )
 
     def _clear_settings_window(self) -> None:
         self.settings = None
